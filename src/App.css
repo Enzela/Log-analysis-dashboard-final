@@ -1,0 +1,264 @@
+@"
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0a0e17;
+  color: #e0e6ed;
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem 0;
+  border-bottom: 1px solid #1a2332;
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.app-header p {
+  color: #8a9bb5;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.upload-section {
+  background: #111b28;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid #1a2332;
+  margin-bottom: 2rem;
+}
+
+.upload-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.file-label {
+  background: #1a2332;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid #2a3a52;
+  transition: all 0.3s;
+}
+
+.file-label:hover {
+  background: #243447;
+  border-color: #00d4ff;
+}
+
+.file-name {
+  color: #00d4ff;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  background: #0a121e;
+  border-radius: 8px;
+}
+
+.scan-button {
+  background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.scan-button:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+}
+
+.scan-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #ff4757;
+  background: #1a0e12;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border: 1px solid #ff4757;
+}
+
+.result-section {
+  background: #111b28;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid #1a2332;
+}
+
+.result-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #00d4ff;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #0a121e;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #1a2332;
+}
+
+.stat-card .stat-label {
+  display: block;
+  color: #8a9bb5;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #e0e6ed;
+}
+
+.stat-card.anomaly .stat-value {
+  color: #ff6b81;
+}
+
+.anomaly-section {
+  background: #0a121e;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #ff6b8133;
+}
+
+.anomaly-section h3 {
+  color: #ff6b81;
+  margin-bottom: 1rem;
+}
+
+.anomaly-list {
+  list-style: none;
+  padding: 0;
+}
+
+.anomaly-item {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #111b28;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid #ff6b81;
+}
+
+.anomaly-timestamp {
+  color: #8a9bb5;
+  font-size: 0.85rem;
+  min-width: 150px;
+}
+
+.anomaly-event {
+  color: #ff6b81;
+  font-weight: 500;
+}
+
+.anomaly-message {
+  color: #a0b4d0;
+}
+
+.entries-preview h4 {
+  color: #8a9bb5;
+  margin-bottom: 1rem;
+}
+
+.entries-list {
+  list-style: none;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.entry-item {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1a2332;
+  font-size: 0.9rem;
+}
+
+.entry-item:hover {
+  background: #0a121e;
+}
+
+.entry-time {
+  color: #8a9bb5;
+  min-width: 150px;
+}
+
+.entry-ip {
+  color: #00d4ff;
+  min-width: 120px;
+}
+
+.entry-event {
+  color: #e0e6ed;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .anomaly-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .entry-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .entry-time, .entry-ip {
+    min-width: unset;
+  }
+}
+"@ | Out-File -Encoding utf8 -Force src\App.css
