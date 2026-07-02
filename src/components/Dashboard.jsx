@@ -50,7 +50,9 @@ const Dashboard = ({
         return;
       }
       const alertsData = await alertsRes.json();
-      setAlerts(Array.isArray(alertsData) ? alertsData : alertsData.alerts || []);
+// Handle both array and object response
+setAlerts(Array.isArray(alertsData) ? alertsData : alertsData.results || alertsData.alerts || []);
+      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

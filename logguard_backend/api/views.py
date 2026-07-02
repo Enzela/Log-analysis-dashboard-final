@@ -7,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
+from .services import send_alert_email
 import json
+import re
 
 User = get_user_model()
 
@@ -25,7 +27,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
         authentication_classes=[]
     )
     def upload(self, request):
-        """Public upload endpoint"""
+        """Public upload endpoint with email alert on CRITICAL"""
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'No file provided'}, status=400)
@@ -96,6 +98,30 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     severity=severity,
                     message=f"Anomaly detected: {entry.get('event', '')} from {entry.get('ip', 'unknown')}"
                 )
+
+                # ✅ Send email for CRITICAL severity — with IP/Event extraction
+                if severity == Severity.CRITICAL:
+                    # Extract IP safely
+                    ip = entry.get('ip', 'unknown')
+                    if not ip or ip == '':
+                        # Try to find IP in raw or message
+                        import re
+                        raw_text = str(entry.get('raw', '')) + ' ' + str(entry.get('message', ''))
+                        ip_match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', raw_text)
+                        if ip_match:
+                            ip = ip_match.group()
+                    
+                    # Extract event safely
+                    event = entry.get('event', '')
+                    if not event or event == '':
+                        event = entry.get('raw', entry.get('message', 'unknown'))[:50]
+
+                    send_alert_email(
+                        severity=severity,
+                        message=f"Critical anomaly detected: {event} from {ip}",
+                        ip=ip,
+                        event=event
+                    )
 
         log_file.status = 'processed'
         log_file.save()

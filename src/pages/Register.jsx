@@ -46,19 +46,21 @@ const Register = ({ onRegister }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0e17]">
-      <div className="bg-[#111b28] p-8 rounded-2xl border border-[#1a2332] w-96">
-        <h1 className="text-3xl font-bold text-white text-center mb-2">📝 Register</h1>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="bg-[#1a1a1a] p-8 rounded-2xl border border-[#2a2a2a] w-96">
+        <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-[#f59e0b] to-[#f97316] bg-clip-text text-transparent">
+          📝 Register
+        </h1>
         <p className="text-gray-500 text-center mb-6 text-sm">Create your account</p>
 
         {error && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">
             ❌ {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-500/20 text-green-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-green-500/20 text-green-400 p-3 rounded-lg mb-4 text-sm border border-green-500/30">
             {success}
           </div>
         )}
@@ -70,7 +72,7 @@ const Register = ({ onRegister }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 bg-[#0a121e] border border-[#1a2332] rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition"
+              className="w-full p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:border-[#f59e0b] transition"
               placeholder="John Doe"
               required
             />
@@ -82,7 +84,7 @@ const Register = ({ onRegister }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-[#0a121e] border border-[#1a2332] rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition"
+              className="w-full p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:border-[#f59e0b] transition"
               placeholder="you@example.com"
               required
             />
@@ -94,7 +96,7 @@ const Register = ({ onRegister }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-[#0a121e] border border-[#1a2332] rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition"
+              className="w-full p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:border-[#f59e0b] transition"
               placeholder="••••••••"
               required
             />
@@ -106,7 +108,7 @@ const Register = ({ onRegister }) => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-3 bg-[#0a121e] border border-[#1a2332] rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition"
+              className="w-full p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:border-[#f59e0b] transition"
               placeholder="••••••••"
               required
             />
@@ -115,7 +117,7 @@ const Register = ({ onRegister }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-gradient-to-r from-[#00d4ff] to-[#7b2ffc] text-white rounded-lg font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full p-3 bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white rounded-lg font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '⏳ Registering...' : '📝 Register'}
           </button>
@@ -125,7 +127,7 @@ const Register = ({ onRegister }) => {
           Already have an account?{' '}
           <button
             onClick={onRegister}
-            className="text-[#00d4ff] hover:underline bg-transparent border-none cursor-pointer"
+            className="text-[#f59e0b] hover:underline bg-transparent border-none cursor-pointer"
           >
             Login
           </button>
