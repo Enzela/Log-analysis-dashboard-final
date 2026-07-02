@@ -22,20 +22,19 @@ const Register = ({ onRegister }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/register/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name,
+          username: email,
           email: email,
           password: password,
+          name: name,
         }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Registration failed');
+      if (!response.ok) throw new Error(data.error || 'Registration failed');
 
       setSuccess('✅ Registration successful! Please login.');
       setTimeout(() => onRegister(), 2000);

@@ -1,37 +1,56 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const Login = ({ onLogin, onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const recaptchaRef = useRef();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!captchaToken) {
+      setError('Please complete the captcha');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/token/', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Login failed');
 
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      onLogin(data.user);
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || 'Login failed');
+      }
+
+      localStorage.setItem('token', data.access);
+      localStorage.setItem('refresh', data.refresh);
+      localStorage.setItem('user', JSON.stringify({ username: email }));
+      onLogin({ username: email });
     } catch (err) {
       setError(err.message);
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const onCaptchaChange = (token) => {
+    setCaptchaToken(token);
   };
 
   return (
@@ -71,9 +90,19 @@ const Login = ({ onLogin, onNavigateToRegister }) => {
             />
           </div>
 
+          {/* Google reCAPTCHA */}
+          <div className="mb-4 flex justify-center">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+              onChange={onCaptchaChange}
+              theme="dark"
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !captchaToken}
             className="w-full p-3 bg-gradient-to-r from-[#00d4ff] to-[#7b2ffc] text-white rounded-lg font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '⏳ Logging in...' : '🔓 Login'}

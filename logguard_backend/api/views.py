@@ -25,7 +25,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
         authentication_classes=[]
     )
     def upload(self, request):
-        """Public upload endpoint — no token required"""
+        """Public upload endpoint"""
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'No file provided'}, status=400)
@@ -110,7 +110,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
-        """Dashboard stats (protected by default)"""
         return Response({
             'total_logs': LogFile.objects.count(),
             'total_entries': LogEntry.objects.count(),

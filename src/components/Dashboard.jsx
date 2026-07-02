@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 
-const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
+const Dashboard = ({ 
+  user, 
+  onNavigateToAlerts, 
+  onNavigateToLogs,      // ✅ New prop
+  onNavigateBack, 
+  onLogout 
+}) => {
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [filter, setFilter] = useState('ALL');
@@ -23,14 +29,28 @@ const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const statsRes = await fetch('/api/logs/stats', { headers });
+      // Stats
+      const statsRes = await fetch('/api/logs/stats/', { headers });
+      if (statsRes.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        return;
+      }
       const statsData = await statsRes.json();
-      setStats(statsData.stats);
+      setStats(statsData);
 
-      const url = filter === 'ALL' ? '/api/alerts' : `/api/alerts?severity=${filter}`;
+      // Alerts
+      const url = filter === 'ALL' ? '/api/alerts/' : `/api/alerts/?severity=${filter}`;
       const alertsRes = await fetch(url, { headers });
+      if (alertsRes.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        return;
+      }
       const alertsData = await alertsRes.json();
-      setAlerts(alertsData.alerts || []);
+      setAlerts(Array.isArray(alertsData) ? alertsData : alertsData.alerts || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -60,7 +80,14 @@ const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
             <h1 className="text-3xl font-bold text-white">📊 Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">👤 {user?.name || 'User'}</span>
+            <span className="text-gray-400 text-sm">👤 {user?.name || user?.username || 'User'}</span>
+            {/* ✅ New Button: View Logs */}
+            <button
+              onClick={onNavigateToLogs}
+              className="px-4 py-2 bg-[#f59e0b]/20 text-[#f59e0b] rounded-lg hover:bg-[#f59e0b]/30 transition text-sm"
+            >
+              📁 View Logs
+            </button>
             <button
               onClick={onNavigateToAlerts}
               className="px-4 py-2 bg-[#00d4ff]/20 text-[#00d4ff] rounded-lg hover:bg-[#00d4ff]/30 transition text-sm"
@@ -76,6 +103,7 @@ const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
           </div>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-[#111b28] p-6 rounded-xl border border-[#1a2332]">
             <p className="text-gray-500 text-sm">Total Log Files</p>
@@ -95,6 +123,7 @@ const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
           </div>
         </div>
 
+        {/* Severity Filter */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((sev) => (
             <button
@@ -111,6 +140,7 @@ const Dashboard = ({ user, onNavigateToAlerts, onNavigateBack, onLogout }) => {
           ))}
         </div>
 
+        {/* Alerts Table */}
         <div className="bg-[#111b28] rounded-xl border border-[#1a2332] overflow-hidden">
           <div className="p-4 border-b border-[#1a2332]">
             <h2 className="text-xl font-semibold text-white">🚨 Alerts</h2>

@@ -98,3 +98,6 @@ SIMPLE_JWT = {
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Google reCAPTCHA Keys (for production)
+RECAPTCHA_PUBLIC_KEY = 'your-site-key'
+RECAPTCHA_PRIVATE_KEY = 'your-secret-key'

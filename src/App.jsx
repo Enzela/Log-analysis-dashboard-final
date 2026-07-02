@@ -2,6 +2,7 @@
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import AlertHistory from './pages/AlertHistory';
+import LogHistory from './pages/LogHistory';   // ✅ New import
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -33,7 +34,8 @@ function App() {
     setPage('landing');
   };
 
-  if (!isAuthenticated && (page === 'dashboard' || page === 'alerts')) {
+  // Protected routes
+  if (!isAuthenticated && (page === 'dashboard' || page === 'alerts' || page === 'logs')) {
     return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
   }
 
@@ -48,20 +50,25 @@ function App() {
   return (
     <div>
       {page === 'landing' && (
-        <LandingPage
-          onNavigateToDashboard={() => setPage('dashboard')}
-        />
+        <LandingPage onNavigateToDashboard={() => setPage('dashboard')} />
       )}
       {page === 'dashboard' && (
         <Dashboard
           user={user}
           onNavigateToAlerts={() => setPage('alerts')}
+          onNavigateToLogs={() => setPage('logs')}     // ✅ New prop
           onNavigateBack={() => setPage('landing')}
           onLogout={handleLogout}
         />
       )}
       {page === 'alerts' && (
         <AlertHistory
+          onNavigateBack={() => setPage('dashboard')}
+          onLogout={handleLogout}
+        />
+      )}
+      {page === 'logs' && (                            // ✅ New route
+        <LogHistory
           onNavigateBack={() => setPage('dashboard')}
           onLogout={handleLogout}
         />

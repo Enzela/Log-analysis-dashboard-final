@@ -1,26 +1,23 @@
 {
-  "name": "log-analysis-dashboard-final",
+  "name": "log-analysis-dashboard",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-google-recaptcha": "^3.1.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "autoprefixer": "^10.5.2",
-    "oxlint": "^1.69.0",
-    "postcss": "^8.5.15",
-    "tailwindcss": "^3.4.0",
-    "vite": "^8.1.0"
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.3",
+    "vite": "^4.4.5"
   }
 }

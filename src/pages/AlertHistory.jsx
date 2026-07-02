@@ -20,12 +20,17 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const url = filter === 'ALL' ? '/api/alerts' : `/api/alerts?severity=${filter}`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const url = filter === 'ALL' ? '/api/alerts/' : `/api/alerts/?severity=${filter}`;
+      const res = await fetch(url, { headers });
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        return;
+      }
       const data = await res.json();
-      setAlerts(data.alerts || []);
+      setAlerts(Array.isArray(data) ? data : data.alerts || []);
     } catch (error) {
       console.error('Error fetching alerts:', error);
     } finally {
