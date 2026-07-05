@@ -55,9 +55,9 @@ const Login = ({ onLogin, onNavigateToRegister }) => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="bg-[#1a1a1a] p-8 rounded-2xl border border-[#2a2a2a] w-96">
+      <div className="bg-[#1a1a1a] p-8 rounded-2xl border border-[#2a2a2a] w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-[#f59e0b] to-[#f97316] bg-clip-text text-transparent">
-          🔐 Login
+          🔐 Log In
         </h1>
         <p className="text-gray-500 text-center mb-6 text-sm">Sign in to access your dashboard</p>
 
@@ -104,19 +104,19 @@ const Login = ({ onLogin, onNavigateToRegister }) => {
           <button
             type="submit"
             disabled={loading || !captchaToken}
-            className="w-full p-3 bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white rounded-lg font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full p-3 bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-[#0a0a0a] font-semibold rounded-lg hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '⏳ Logging in...' : '🔓 Login'}
+            {loading ? '⏳ Logging in...' : '🔓 Log In'}
           </button>
         </form>
 
-        <p className="text-gray-500 text-center mt-4 text-sm">
+        <p className="text-gray-500 text-center mt-6 text-sm">
           Don't have an account?{' '}
           <button
             onClick={onNavigateToRegister}
             className="text-[#f59e0b] hover:underline bg-transparent border-none cursor-pointer"
           >
-            Register
+            Create one
           </button>
         </p>
       </div>

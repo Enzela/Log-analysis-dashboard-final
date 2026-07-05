@@ -7,9 +7,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'role', 'created_at']
 
 class LogFileSerializer(serializers.ModelSerializer):
+    entries_count = serializers.IntegerField(read_only=True)
+    anomalies_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = LogFile
-        fields = '__all__'
+        fields = ['id', 'filename', 'file_path', 'uploaded_by', 'uploaded_at', 'status', 'entries_count', 'anomalies_count']
 
 class LogEntrySerializer(serializers.ModelSerializer):
     class Meta:

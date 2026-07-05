@@ -7,14 +7,14 @@ const WelcomeToast = ({ username, onClose }) => {
     const timer = setTimeout(() => {
       setVisible(false);
       if (onClose) onClose();
-    }, 5000); // Auto dismiss after 5 seconds
+    }, 5000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
   if (!visible) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-50 max-w-sm w-full bg-[#111b28] border border-[#00d4ff]/30 rounded-xl shadow-2xl shadow-[#00d4ff]/20 p-5 animate-slideInRight">
+    <div className="fixed top-20 right-6 z-50 max-w-sm w-full bg-[#1a1a1a] border border-[#f59e0b]/30 rounded-xl shadow-2xl shadow-[#f59e0b]/20 p-5 animate-slideInRight">
       <div className="flex items-start gap-3">
         <div className="text-3xl">👋</div>
         <div className="flex-1">

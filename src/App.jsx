@@ -5,23 +5,23 @@ import AlertHistory from './pages/AlertHistory';
 import LogHistory from './pages/LogHistory';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import WelcomeToast from './components/WelcomeToast'; // ✅ Import
+import Navbar from './components/Navbar';
+import WelcomeToast from './components/WelcomeToast';
 
 function App() {
   const [page, setPage] = useState('landing');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [showWelcome, setShowWelcome] = useState(false); // ✅ Welcome toast state
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     if (token && userData) {
       setIsAuthenticated(true);
-      const parsed = JSON.parse(userData);
-      setUser(parsed);
-      // Show welcome toast only if coming from login (not on page reload)
-      // We'll set it in handleLogin
+      setUser(JSON.parse(userData));
+      setActiveTab('dashboard');
     }
   }, []);
 
@@ -29,58 +29,78 @@ function App() {
     setIsAuthenticated(true);
     setUser(userData);
     setPage('dashboard');
-    setShowWelcome(true); // ✅ Show welcome toast
+    setShowWelcome(true);
+    setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
     setUser(null);
     setPage('landing');
     setShowWelcome(false);
+    setActiveTab('dashboard');
   };
 
-  // Protected routes
-  if (!isAuthenticated && (page === 'dashboard' || page === 'alerts' || page === 'logs')) {
-    return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
+  // If not authenticated, show Login/Register
+  if (!isAuthenticated) {
+    if (page === 'register') {
+      return <Register onRegister={() => setPage('login')} />;
+    }
+    if (page === 'login') {
+      return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
+    }
+    return <LandingPage onNavigateToDashboard={() => setPage('login')} />;
   }
 
-  if (page === 'register') {
-    return <Register onRegister={() => setPage('login')} />;
-  }
-
-  if (page === 'login') {
-    return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
-  }
+  // Authenticated — show Navbar + content
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <LandingPage onNavigateToDashboard={() => setActiveTab('dashboard')} />;
+      case 'dashboard':
+        return (
+          <Dashboard
+            user={user}
+            onNavigateToAlerts={() => setActiveTab('alerts')}
+            onNavigateToLogs={() => setActiveTab('logs')}
+            onNavigateBack={() => setActiveTab('dashboard')}
+            onLogout={handleLogout}
+          />
+        );
+      case 'alerts':
+        return (
+          <AlertHistory
+            onNavigateBack={() => setActiveTab('dashboard')}
+            onLogout={handleLogout}
+          />
+        );
+      case 'logs':
+        return (
+          <LogHistory
+            onNavigateBack={() => setActiveTab('dashboard')}
+            onLogout={handleLogout}
+          />
+        );
+      default:
+        return (
+          <Dashboard
+            user={user}
+            onNavigateToAlerts={() => setActiveTab('alerts')}
+            onNavigateToLogs={() => setActiveTab('logs')}
+            onNavigateBack={() => setActiveTab('dashboard')}
+            onLogout={handleLogout}
+          />
+        );
+    }
+  };
 
   return (
     <div>
-      {page === 'landing' && (
-        <LandingPage onNavigateToDashboard={() => setPage('dashboard')} />
-      )}
-      {page === 'dashboard' && (
-        <Dashboard
-          user={user}
-          onNavigateToAlerts={() => setPage('alerts')}
-          onNavigateToLogs={() => setPage('logs')}
-          onNavigateBack={() => setPage('landing')}
-          onLogout={handleLogout}
-        />
-      )}
-      {page === 'alerts' && (
-        <AlertHistory
-          onNavigateBack={() => setPage('dashboard')}
-          onLogout={handleLogout}
-        />
-      )}
-      {page === 'logs' && (
-        <LogHistory
-          onNavigateBack={() => setPage('dashboard')}
-          onLogout={handleLogout}
-        />
-      )}
-      {/* ✅ Welcome Toast */}
+      <Navbar user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab} />
+      {renderContent()}
       {showWelcome && (
         <WelcomeToast
           username={user?.username || user?.name || 'User'}

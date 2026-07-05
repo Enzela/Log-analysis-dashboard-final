@@ -4,12 +4,20 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
   const [alerts, setAlerts] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const severityColors = {
-    LOW: 'bg-green-500/20 text-green-400',
-    MEDIUM: 'bg-yellow-500/20 text-yellow-400',
-    HIGH: 'bg-orange-500/20 text-orange-400',
-    CRITICAL: 'bg-red-500/20 text-red-400'
+    LOW: 'bg-green-500/20 text-green-400 border border-green-500/30',
+    MEDIUM: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
+    HIGH: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+    CRITICAL: 'bg-red-500/20 text-red-400 border border-red-500/30'
+  };
+
+  const severityLabels = {
+    LOW: '🟢 LOW',
+    MEDIUM: '🟡 MEDIUM',
+    HIGH: '🟠 HIGH',
+    CRITICAL: '🔴 CRITICAL'
   };
 
   useEffect(() => {
@@ -18,21 +26,45 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
 
   const fetchAlerts = async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
       const url = filter === 'ALL' ? '/api/alerts/' : `/api/alerts/?severity=${filter}`;
       const res = await fetch(url, { headers });
+      
       if (res.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/';
         return;
       }
+      
       const data = await res.json();
-      setAlerts(Array.isArray(data) ? data : data.alerts || []);
+      console.log('Alerts data:', data); // Debug log
+      
+      // Handle different response formats
+      let alertsArray = [];
+      if (Array.isArray(data)) {
+        alertsArray = data;
+      } else if (data.results) {
+        alertsArray = data.results;
+      } else if (data.alerts) {
+        alertsArray = data.alerts;
+      } else {
+        alertsArray = [];
+      }
+      
+      // ✅ Ensure severity is uppercase
+      alertsArray = alertsArray.map(alert => ({
+        ...alert,
+        severity: alert.severity ? alert.severity.toUpperCase() : 'LOW'
+      }));
+      
+      setAlerts(alertsArray);
     } catch (error) {
       console.error('Error fetching alerts:', error);
+      setError('Failed to load alerts');
     } finally {
       setLoading(false);
     }
@@ -40,20 +72,20 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="text-[#00d4ff] text-xl">Loading alerts...</div>
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-[#f59e0b] text-xl">Loading alerts...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-gray-200 p-6">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <button
               onClick={onNavigateBack}
-              className="px-4 py-2 bg-[#1a2332] text-gray-400 rounded-lg hover:bg-[#243447] transition text-sm"
+              className="px-4 py-2 bg-[#1a1a1a] text-gray-400 rounded-lg hover:bg-[#2a2a2a] transition text-sm border border-[#2a2a2a]"
             >
               ← Back to Dashboard
             </button>
@@ -67,6 +99,12 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
           </button>
         </div>
 
+        {error && (
+          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">
+            ❌ {error}
+          </div>
+        )}
+
         <div className="flex gap-2 mb-6 flex-wrap">
           {['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((sev) => (
             <button
@@ -74,8 +112,8 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
               onClick={() => setFilter(sev)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 filter === sev
-                  ? 'bg-[#00d4ff] text-[#0a0e17]'
-                  : 'bg-[#1a2332] text-gray-400 hover:bg-[#243447]'
+                  ? 'bg-[#f59e0b] text-[#0a0a0a]'
+                  : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#2a2a2a] border border-[#2a2a2a]'
               }`}
             >
               {sev}
@@ -83,10 +121,10 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
           ))}
         </div>
 
-        <div className="bg-[#111b28] rounded-xl border border-[#1a2332] overflow-hidden">
+        <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#0a121e]">
+              <thead className="bg-[#0a0a0a]">
                 <tr>
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">Timestamp</th>
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">Severity</th>
@@ -103,13 +141,13 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
                   </tr>
                 ) : (
                   alerts.map((alert) => (
-                    <tr key={alert.id} className="border-t border-[#1a2332]">
+                    <tr key={alert.id} className="border-t border-[#2a2a2a]">
                       <td className="px-4 py-3 text-gray-400">
                         {alert.created_at ? new Date(alert.created_at).toLocaleString() : 'N/A'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${severityColors[alert.severity]}`}>
-                          {alert.severity}
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${severityColors[alert.severity] || severityColors.LOW}`}>
+                          {severityLabels[alert.severity] || alert.severity || 'UNKNOWN'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-300">{alert.message}</td>

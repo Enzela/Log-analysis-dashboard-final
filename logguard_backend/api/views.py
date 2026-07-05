@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
 from .services import send_alert_email
@@ -27,7 +28,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
         authentication_classes=[]
     )
     def upload(self, request):
-        """Public upload endpoint with email alert on CRITICAL"""
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'No file provided'}, status=400)
@@ -53,6 +53,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         anomalies = []
         for entry in entries:
+            # Keyword-based detection
             text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
             text_lower = text.lower()
             is_anomaly = False
@@ -71,6 +72,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
                 is_anomaly = True
                 severity = Severity.MEDIUM
 
+            # Parse timestamp
             try:
                 timestamp = entry.get('timestamp')
                 if timestamp:
@@ -81,41 +83,39 @@ class LogFileViewSet(viewsets.ModelViewSet):
             except:
                 timestamp = timezone.now()
 
+            # Extract IP
+            ip = entry.get('ip', '')
+            if not ip:
+                text = str(entry.get('raw', '')) + ' ' + str(entry.get('message', ''))
+                ip_match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', text)
+                if ip_match:
+                    ip = ip_match.group()
+
+            event = entry.get('event', entry.get('raw', 'unknown'))
+            message = entry.get('message', '')
+
+            # Create LogEntry
             log_entry = LogEntry.objects.create(
                 log_file=log_file,
                 timestamp=timestamp,
-                ip=entry.get('ip', ''),
-                event=entry.get('event', entry.get('raw', 'unknown')),
-                message=entry.get('message', ''),
+                ip=ip,
+                event=event[:100],
+                message=message[:500],
                 severity=severity,
-                is_anomaly=is_anomaly
+                is_anomaly=1 if is_anomaly else 0
             )
 
+            # Create Alert if anomaly
             if is_anomaly:
                 anomalies.append(entry)
                 Alert.objects.create(
                     log_entry=log_entry,
                     severity=severity,
-                    message=f"Anomaly detected: {entry.get('event', '')} from {entry.get('ip', 'unknown')}"
+                    message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
 
-                # ✅ Send email for CRITICAL severity — with IP/Event extraction
+                # Send email for CRITICAL
                 if severity == Severity.CRITICAL:
-                    # Extract IP safely
-                    ip = entry.get('ip', 'unknown')
-                    if not ip or ip == '':
-                        # Try to find IP in raw or message
-                        import re
-                        raw_text = str(entry.get('raw', '')) + ' ' + str(entry.get('message', ''))
-                        ip_match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', raw_text)
-                        if ip_match:
-                            ip = ip_match.group()
-                    
-                    # Extract event safely
-                    event = entry.get('event', '')
-                    if not event or event == '':
-                        event = entry.get('raw', entry.get('message', 'unknown'))[:50]
-
                     send_alert_email(
                         severity=severity,
                         message=f"Critical anomaly detected: {event} from {ip}",
@@ -133,6 +133,18 @@ class LogFileViewSet(viewsets.ModelViewSet):
             'entries': entries[:10],
             'anomaly_list': anomalies[:5]
         })
+
+    def list(self, request):
+        """List logs with entries_count and anomalies_count"""
+        queryset = LogFile.objects.annotate(
+            entries_count=Count('entries'),
+            anomalies_count=Count('entries', filter=Q(entries__is_anomaly=True))
+        )
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(filename__icontains=search)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -162,8 +174,11 @@ class AlertViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         severity = self.request.query_params.get('severity')
+        search = self.request.query_params.get('search')
         if severity:
             qs = qs.filter(severity=severity)
+        if search:
+            qs = qs.filter(Q(message__icontains=search) | Q(log_entry__ip__icontains=search))
         return qs.order_by('-created_at')
 
 

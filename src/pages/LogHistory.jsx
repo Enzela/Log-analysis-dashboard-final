@@ -24,6 +24,7 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
         return;
       }
       const data = await res.json();
+      console.log('Logs data:', data); // Debug
       setLogs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
       setError('Failed to fetch logs');
@@ -60,21 +61,21 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="text-[#00d4ff] text-xl">Loading logs...</div>
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-[#f59e0b] text-xl">Loading logs...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-gray-200 p-6">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <button
               onClick={onNavigateBack}
-              className="px-4 py-2 bg-[#1a2332] text-gray-400 rounded-lg hover:bg-[#243447] transition text-sm"
+              className="px-4 py-2 bg-[#1a1a1a] text-gray-400 rounded-lg hover:bg-[#2a2a2a] transition text-sm border border-[#2a2a2a]"
             >
               ← Back to Dashboard
             </button>
@@ -89,7 +90,7 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
         </div>
 
         {error && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">
             ❌ {error}
           </div>
         )}
@@ -101,15 +102,15 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
             placeholder="🔍 Search by filename..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full p-3 bg-[#1a2332] border border-[#2a3a52] rounded-lg text-white focus:outline-none focus:border-[#00d4ff] transition"
+            className="w-full p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:border-[#f59e0b] transition"
           />
         </div>
 
         {/* Logs Table */}
-        <div className="bg-[#111b28] rounded-xl border border-[#1a2332] overflow-hidden">
+        <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#0a121e]">
+              <thead className="bg-[#0a0a0a]">
                 <tr>
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">Filename</th>
                   <th className="px-4 py-3 text-left text-gray-500 font-medium">Uploaded</th>
@@ -128,7 +129,7 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
                   </tr>
                 ) : (
                   filteredLogs.map((log) => (
-                    <tr key={log.id} className="border-t border-[#1a2332]">
+                    <tr key={log.id} className="border-t border-[#2a2a2a]">
                       <td className="px-4 py-3 text-gray-300">{log.filename}</td>
                       <td className="px-4 py-3 text-gray-400">
                         {log.uploaded_at ? new Date(log.uploaded_at).toLocaleString() : 'N/A'}
@@ -142,10 +143,9 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
                           {log.status || 'pending'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-400">{log.entries?.length || 0}</td>
-                      <td className="px-4 py-3 text-gray-400">
-                        {log.entries?.filter(e => e.is_anomaly).length || 0}
-                      </td>
+                      {/* ✅ FIX: Use entries_count and anomalies_count */}
+                      <td className="px-4 py-3 text-gray-400">{log.entries_count || 0}</td>
+                      <td className="px-4 py-3 text-gray-400">{log.anomalies_count || 0}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => handleDelete(log.id, log.filename)}
