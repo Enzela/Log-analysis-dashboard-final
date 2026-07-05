@@ -9,10 +9,41 @@ from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
 from .services import send_alert_email
+from .ml_service import predict_anomaly  # ✅ ML model
 import json
 import re
+import PyPDF2
+from io import BytesIO
 
 User = get_user_model()
+
+def parse_raw_line(line):
+    """Parse a raw log line into structured fields (timestamp, ip, event, message)."""
+    if not line:
+        return {'raw': line}
+    # Try CSV format: timestamp, ip, event, message
+    if ',' in line:
+        parts = [p.strip() for p in line.split(',')]
+        if len(parts) >= 3:
+            return {
+                'timestamp': parts[0],
+                'ip': parts[1] if len(parts) > 1 else '',
+                'event': parts[2] if len(parts) > 2 else '',
+                'message': ' '.join(parts[3:]) if len(parts) > 3 else ''
+            }
+    # Try space-separated: timestamp ip event message
+    parts = line.split()
+    if len(parts) >= 3:
+        # Check if first part looks like timestamp
+        if re.match(r'\d{4}-\d{2}-\d{2}', parts[0]) or re.match(r'\d{2}/\d{2}/\d{4}', parts[0]):
+            return {
+                'timestamp': parts[0],
+                'ip': parts[1] if len(parts) > 1 else '',
+                'event': parts[2] if len(parts) > 2 else '',
+                'message': ' '.join(parts[3:]) if len(parts) > 3 else ''
+            }
+    # Fallback: raw only
+    return {'raw': line}
 
 
 class LogFileViewSet(viewsets.ModelViewSet):
@@ -33,15 +64,43 @@ class LogFileViewSet(viewsets.ModelViewSet):
             return Response({'error': 'No file provided'}, status=400)
 
         content = file.read()
-        if file.name.endswith('.json'):
+
+        # ---------- PDF SUPPORT ----------
+        if file.name.lower().endswith('.pdf'):
+            try:
+                pdf_reader = PyPDF2.PdfReader(BytesIO(content))
+                text = ""
+                for page in pdf_reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+                if not text.strip():
+                    return Response({'error': 'No text found in PDF'}, status=400)
+                lines = text.splitlines()
+                entries = []
+                for line in lines:
+                    if line.strip():
+                        entries.append(parse_raw_line(line.strip()))
+            except Exception as e:
+                return Response({'error': f'Failed to parse PDF: {str(e)}'}, status=400)
+
+        # ---------- JSON SUPPORT ----------
+        elif file.name.lower().endswith('.json'):
             try:
                 data = json.loads(content)
                 entries = data if isinstance(data, list) else [data]
             except json.JSONDecodeError:
                 return Response({'error': 'Invalid JSON'}, status=400)
-        else:
+
+        # ---------- TXT SUPPORT ----------
+        elif file.name.lower().endswith('.txt'):
             lines = content.decode('utf-8').splitlines()
-            entries = [{'raw': line} for line in lines if line.strip()]
+            entries = []
+            for line in lines:
+                if line.strip():
+                    entries.append(parse_raw_line(line.strip()))
+        else:
+            return Response({'error': 'Only .pdf, .json, or .txt files allowed'}, status=400)
 
         uploaded_by = request.user if request.user.is_authenticated else None
         log_file = LogFile.objects.create(
@@ -53,31 +112,55 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         anomalies = []
         for entry in entries:
-            # Keyword-based detection
-            text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
-            text_lower = text.lower()
-            is_anomaly = False
-            severity = Severity.LOW
+            # ✅ ML model prediction (with fallback to keyword-based)
+            try:
+                is_anomaly, ml_score = predict_anomaly(entry)
+            except Exception as e:
+                # If ML model fails, fallback to keyword-based detection
+                print(f"ML error, falling back to keyword: {e}")
+                text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
+                text_lower = text.lower()
+                is_anomaly = False
+                ml_score = 0.0
+                if any(w in text_lower for w in ['brute', 'forced']):
+                    is_anomaly = True
+                    ml_score = -0.6
+                elif any(w in text_lower for w in ['unauthorized', 'access denied']):
+                    is_anomaly = True
+                    ml_score = -0.4
+                elif any(w in text_lower for w in ['failed', 'invalid', 'attempt']):
+                    is_anomaly = True
+                    ml_score = -0.2
+                elif any(w in text_lower for w in ['scan', 'probe']):
+                    is_anomaly = True
+                    ml_score = -0.2
 
-            if any(w in text_lower for w in ['brute', 'forced']):
-                is_anomaly = True
-                severity = Severity.CRITICAL
-            elif any(w in text_lower for w in ['unauthorized', 'access denied']):
-                is_anomaly = True
-                severity = Severity.HIGH
-            elif any(w in text_lower for w in ['failed', 'invalid', 'attempt']):
-                is_anomaly = True
-                severity = Severity.MEDIUM
-            elif any(w in text_lower for w in ['scan', 'probe']):
-                is_anomaly = True
-                severity = Severity.MEDIUM
+            # Map ML score to severity
+            if is_anomaly:
+                if ml_score < -0.5:
+                    severity = Severity.CRITICAL
+                elif ml_score < -0.3:
+                    severity = Severity.HIGH
+                elif ml_score < -0.1:
+                    severity = Severity.MEDIUM
+                else:
+                    severity = Severity.LOW
+            else:
+                severity = Severity.LOW
 
             # Parse timestamp
             try:
                 timestamp = entry.get('timestamp')
                 if timestamp:
                     from datetime import datetime
-                    timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M']:
+                        try:
+                            timestamp = datetime.strptime(timestamp, fmt)
+                            break
+                        except:
+                            continue
+                    else:
+                        timestamp = timezone.now()
                 else:
                     timestamp = timezone.now()
             except:
@@ -102,7 +185,8 @@ class LogFileViewSet(viewsets.ModelViewSet):
                 event=event[:100],
                 message=message[:500],
                 severity=severity,
-                is_anomaly=1 if is_anomaly else 0
+                is_anomaly=1 if is_anomaly else 0,
+                score=ml_score if is_anomaly else None
             )
 
             # Create Alert if anomaly
@@ -135,7 +219,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
         })
 
     def list(self, request):
-        """List logs with entries_count and anomalies_count"""
         queryset = LogFile.objects.annotate(
             entries_count=Count('entries'),
             anomalies_count=Count('entries', filter=Q(entries__is_anomaly=True))

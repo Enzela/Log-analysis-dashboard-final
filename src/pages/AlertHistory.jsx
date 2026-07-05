@@ -41,9 +41,6 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       }
       
       const data = await res.json();
-      console.log('Alerts data:', data); // Debug log
-      
-      // Handle different response formats
       let alertsArray = [];
       if (Array.isArray(data)) {
         alertsArray = data;
@@ -55,7 +52,6 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
         alertsArray = [];
       }
       
-      // ✅ Ensure severity is uppercase
       alertsArray = alertsArray.map(alert => ({
         ...alert,
         severity: alert.severity ? alert.severity.toUpperCase() : 'LOW'
@@ -67,6 +63,29 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       setError('Failed to load alerts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Download function with token
+  const downloadReport = async (format) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = `/api/reports/${format}/?severity=${filter}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `alerts_report_${format}.${format === 'pdf' ? 'pdf' : 'csv'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      setError('Failed to download report');
+      console.error(err);
     }
   };
 
@@ -91,12 +110,27 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
             </button>
             <h1 className="text-3xl font-bold text-white">🚨 Alert History</h1>
           </div>
-          <button
-            onClick={onLogout}
-            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
-          >
-            🚪 Logout
-          </button>
+          <div className="flex items-center gap-4">
+            {/* ✅ PDF / CSV Download Buttons */}
+            <button
+              onClick={() => downloadReport('pdf')}
+              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
+            >
+              📄 PDF
+            </button>
+            <button
+              onClick={() => downloadReport('csv')}
+              className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition text-sm"
+            >
+              📊 CSV
+            </button>
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
+            >
+              🚪 Logout
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -10,3 +10,9 @@ scikit-learn
 pandas
 numpy
 joblib
+PyPDF2
+pandas
+numpy
+scikit-learn
+joblib
+kagglehub
