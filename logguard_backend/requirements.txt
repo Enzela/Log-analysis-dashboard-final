@@ -6,13 +6,10 @@ psycopg2-binary
 python-dotenv
 django-ratelimit
 django-recaptcha
-scikit-learn
-pandas
-numpy
-joblib
 PyPDF2
+reportlab
+openpyxl
+scikit-learn
 pandas
 numpy
-scikit-learn
 joblib
-kagglehub
