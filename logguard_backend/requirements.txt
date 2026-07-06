@@ -9,7 +9,7 @@ django-recaptcha
 PyPDF2
 reportlab
 openpyxl
-openai
+groq
 scikit-learn
 pandas
 numpy
