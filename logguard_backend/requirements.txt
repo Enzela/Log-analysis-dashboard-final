@@ -9,6 +9,7 @@ django-recaptcha
 PyPDF2
 reportlab
 openpyxl
+openai
 scikit-learn
 pandas
 numpy

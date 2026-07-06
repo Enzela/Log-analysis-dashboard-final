@@ -9,7 +9,9 @@ from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
 from .services import send_alert_email
-from .ml_service import predict_anomaly  # ✅ ML model
+from .ml_service import predict_anomaly
+from .llm_service import generate_threat_summary
+from .permissions import IsAdminUser, IsAnalyst
 import json
 import re
 import PyPDF2
@@ -18,10 +20,8 @@ from io import BytesIO
 User = get_user_model()
 
 def parse_raw_line(line):
-    """Parse a raw log line into structured fields (timestamp, ip, event, message)."""
     if not line:
         return {'raw': line}
-    # Try CSV format: timestamp, ip, event, message
     if ',' in line:
         parts = [p.strip() for p in line.split(',')]
         if len(parts) >= 3:
@@ -31,10 +31,8 @@ def parse_raw_line(line):
                 'event': parts[2] if len(parts) > 2 else '',
                 'message': ' '.join(parts[3:]) if len(parts) > 3 else ''
             }
-    # Try space-separated: timestamp ip event message
     parts = line.split()
     if len(parts) >= 3:
-        # Check if first part looks like timestamp
         if re.match(r'\d{4}-\d{2}-\d{2}', parts[0]) or re.match(r'\d{2}/\d{2}/\d{4}', parts[0]):
             return {
                 'timestamp': parts[0],
@@ -42,9 +40,7 @@ def parse_raw_line(line):
                 'event': parts[2] if len(parts) > 2 else '',
                 'message': ' '.join(parts[3:]) if len(parts) > 3 else ''
             }
-    # Fallback: raw only
     return {'raw': line}
-
 
 class LogFileViewSet(viewsets.ModelViewSet):
     queryset = LogFile.objects.all()
@@ -52,20 +48,13 @@ class LogFileViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    @action(
-        detail=False,
-        methods=['post'],
-        permission_classes=[AllowAny],
-        authentication_classes=[]
-    )
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
     def upload(self, request):
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'No file provided'}, status=400)
 
         content = file.read()
-
-        # ---------- PDF SUPPORT ----------
         if file.name.lower().endswith('.pdf'):
             try:
                 pdf_reader = PyPDF2.PdfReader(BytesIO(content))
@@ -83,16 +72,12 @@ class LogFileViewSet(viewsets.ModelViewSet):
                         entries.append(parse_raw_line(line.strip()))
             except Exception as e:
                 return Response({'error': f'Failed to parse PDF: {str(e)}'}, status=400)
-
-        # ---------- JSON SUPPORT ----------
         elif file.name.lower().endswith('.json'):
             try:
                 data = json.loads(content)
                 entries = data if isinstance(data, list) else [data]
             except json.JSONDecodeError:
                 return Response({'error': 'Invalid JSON'}, status=400)
-
-        # ---------- TXT SUPPORT ----------
         elif file.name.lower().endswith('.txt'):
             lines = content.decode('utf-8').splitlines()
             entries = []
@@ -112,12 +97,10 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         anomalies = []
         for entry in entries:
-            # ✅ ML model prediction (with fallback to keyword-based)
             try:
                 is_anomaly, ml_score = predict_anomaly(entry)
             except Exception as e:
-                # If ML model fails, fallback to keyword-based detection
-                print(f"ML error, falling back to keyword: {e}")
+                # Fallback: keyword-based
                 text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
                 text_lower = text.lower()
                 is_anomaly = False
@@ -135,7 +118,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     is_anomaly = True
                     ml_score = -0.2
 
-            # Map ML score to severity
             if is_anomaly:
                 if ml_score < -0.5:
                     severity = Severity.CRITICAL
@@ -148,7 +130,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
             else:
                 severity = Severity.LOW
 
-            # Parse timestamp
+            # Timestamp parse
             try:
                 timestamp = entry.get('timestamp')
                 if timestamp:
@@ -166,7 +148,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             except:
                 timestamp = timezone.now()
 
-            # Extract IP
             ip = entry.get('ip', '')
             if not ip:
                 text = str(entry.get('raw', '')) + ' ' + str(entry.get('message', ''))
@@ -177,7 +158,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             event = entry.get('event', entry.get('raw', 'unknown'))
             message = entry.get('message', '')
 
-            # Create LogEntry
             log_entry = LogEntry.objects.create(
                 log_file=log_file,
                 timestamp=timestamp,
@@ -189,7 +169,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
                 score=ml_score if is_anomaly else None
             )
 
-            # Create Alert if anomaly
             if is_anomaly:
                 anomalies.append(entry)
                 Alert.objects.create(
@@ -197,15 +176,8 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     severity=severity,
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
-
-                # Send email for CRITICAL
                 if severity == Severity.CRITICAL:
-                    send_alert_email(
-                        severity=severity,
-                        message=f"Critical anomaly detected: {event} from {ip}",
-                        ip=ip,
-                        event=event
-                    )
+                    send_alert_email(severity=severity, message=f"Critical anomaly detected: {event} from {ip}", ip=ip, event=event)
 
         log_file.status = 'processed'
         log_file.save()
@@ -223,11 +195,56 @@ class LogFileViewSet(viewsets.ModelViewSet):
             entries_count=Count('entries'),
             anomalies_count=Count('entries', filter=Q(entries__is_anomaly=True))
         )
+        # Search & Filter (Feature 12)
         search = request.query_params.get('search')
+        ip = request.query_params.get('ip')
+        event = request.query_params.get('event')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
         if search:
             queryset = queryset.filter(filename__icontains=search)
+        if ip:
+            queryset = queryset.filter(entries__ip__icontains=ip).distinct()
+        if event:
+            queryset = queryset.filter(entries__event__icontains=event).distinct()
+        if start_date:
+            queryset = queryset.filter(entries__timestamp__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(entries__timestamp__lte=end_date)
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def summary(self, request):
+        """Generate threat summary using LLM (Feature 10)"""
+        log_id = request.data.get('log_id')
+        if not log_id:
+            return Response({'error': 'log_id required'}, status=400)
+        try:
+            log_file = LogFile.objects.get(id=log_id)
+        except LogFile.DoesNotExist:
+            return Response({'error': 'Log file not found'}, status=404)
+
+        anomalies = log_file.entries.filter(is_anomaly=True).values('event', 'ip', 'timestamp', 'severity')
+        summary = generate_threat_summary(list(anomalies))
+        return Response({'summary': summary, 'anomalies_count': anomalies.count()})
+
+    @action(detail=False, methods=['delete'])
+    def delete_log(self, request):
+        """Delete log by ID (Admin only)"""
+        if request.user.role != 'admin':
+            return Response({'error': 'Permission denied. Admin only.'}, status=403)
+        log_id = request.data.get('log_id')
+        if not log_id:
+            return Response({'error': 'log_id required'}, status=400)
+        try:
+            log_file = LogFile.objects.get(id=log_id)
+            log_file.delete()
+            return Response({'success': True})
+        except LogFile.DoesNotExist:
+            return Response({'error': 'Log not found'}, status=404)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -247,7 +264,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
         serializer = LogEntrySerializer(qs[:100], many=True)
         return Response({'entries': serializer.data})
 
-
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()
     serializer_class = AlertSerializer
@@ -258,39 +274,36 @@ class AlertViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         severity = self.request.query_params.get('severity')
         search = self.request.query_params.get('search')
+        ip = self.request.query_params.get('ip')
+        event = self.request.query_params.get('event')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
         if severity:
             qs = qs.filter(severity=severity)
         if search:
             qs = qs.filter(Q(message__icontains=search) | Q(log_entry__ip__icontains=search))
+        if ip:
+            qs = qs.filter(log_entry__ip__icontains=ip)
+        if event:
+            qs = qs.filter(log_entry__event__icontains=event)
+        if start_date:
+            qs = qs.filter(created_at__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__lte=end_date)
         return qs.order_by('-created_at')
-
 
 class RegisterViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
-
     def create(self, request):
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
         name = request.data.get('name', username)
-
         if not username or not email or not password:
             return Response({'error': 'Username, email and password required'}, status=400)
-
         if User.objects.filter(username=username).exists():
             return Response({'error': 'Username already taken'}, status=400)
         if User.objects.filter(email=email).exists():
             return Response({'error': 'Email already registered'}, status=400)
-
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=name,
-            role='analyst'
-        )
-        return Response({
-            'success': True,
-            'message': 'User registered successfully',
-            'user_id': user.id
-        })
+        user = User.objects.create_user(username=username, email=email, password=password, first_name=name, role='analyst')
+        return Response({'success': True, 'message': 'User registered successfully', 'user_id': user.id})
