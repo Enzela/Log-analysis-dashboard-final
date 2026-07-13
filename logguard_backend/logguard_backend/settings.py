@@ -1,15 +1,19 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
+from datetime import timedelta
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-your-secret-key-here')
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# ---------- SECURITY ----------
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-in-production')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+# ---------- INSTALLED APPS ----------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -20,12 +24,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    
+               # ✅ Captcha
     'api',
 ]
 
+# ---------- MIDDLEWARE ----------
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -53,28 +61,37 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'logguard_backend.wsgi.application'
 
-# SQLite (सजिलो) — PostgreSQL चाहियो भने तलको comment out गर
+# ---------- DATABASE ----------
 DATABASES = {
+    'default': dj_database_url.config(default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'))
+}
+
+# ---------- CACHES (for django-ratelimit) ----------
+# ✅ DatabaseCache — shared cache, works with ratelimit
+CACHES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
     }
 }
 
-# PostgreSQL (यदि चाहियो भने)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME', 'log_analysis_db'),
-#         'USER': os.getenv('DB_USER', 'postgres'),
-#         'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
-#         'HOST': os.getenv('DB_HOST', 'localhost'),
-#         'PORT': os.getenv('DB_PORT', '5432'),
-#     }
-# }
+# ---------- RATE LIMITING ----------
+RATELIMIT_VIEW = 'api.views.rate_limit_exceeded'
+RATELIMIT_USE_CACHE = 'default'
 
+# ---------- AUTH ----------
 AUTH_USER_MODEL = 'api.User'
 
+# ---------- STATIC & MEDIA FILES ----------
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ---------- CORS ----------
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
+CORS_ALLOW_CREDENTIALS = True
+
+# ---------- REST FRAMEWORK (JWT) ----------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -84,20 +101,22 @@ REST_FRAMEWORK = {
     ),
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-]
-CORS_ALLOW_CREDENTIALS = True
-
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
 }
 
-STATIC_URL = 'static/'
+# ---------- RECAPTCHA ----------
+# ✅ Test keys (working on localhost)
+RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
+RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJjrW0')
+
+# ---------- INTERNATIONALIZATION ----------
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# ---------- DEFAULT AUTO FIELD ----------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# Google reCAPTCHA Keys (for production)
-RECAPTCHA_PUBLIC_KEY = 'your-site-key'
-RECAPTCHA_PRIVATE_KEY = 'your-secret-key'

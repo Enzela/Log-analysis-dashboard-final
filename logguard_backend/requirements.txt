@@ -6,6 +6,9 @@ psycopg2-binary
 python-dotenv
 django-ratelimit
 django-recaptcha
+dj-database-url
+whitenoise
+gunicorn
 PyPDF2
 reportlab
 openpyxl
