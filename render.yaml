@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: backend
+    runtime: docker
+    repo: https://github.com/Enzela/Log-analysis-dashboard-final
+    plan: free
+    dockerfilePath: ./logguard_backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: logguard-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: logguard-backend.onrender.com,localhost
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://logguard-backend.onrender.com
+
+  - type: web
+    name: frontend
+    runtime: docker
+    repo: https://github.com/Enzela/Log-analysis-dashboard-final
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: VITE_API_URL
+        value: https://backend.onrender.com
+
+  - type: postgresql
+    name: logguard-db
+    plan: free
