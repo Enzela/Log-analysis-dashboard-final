@@ -1,1 +1,2 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'https://log-analysis-dashboard-final.onrender.com';
+// ✅ API URL — Render backend
+export const API_URL = 'https://log-analysis-dashboard-final.onrender.com';
