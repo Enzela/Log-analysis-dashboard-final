@@ -52,14 +52,13 @@ function App() {
     if (page === 'login') {
       return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
     }
+    // Landing page
     return <LandingPage onNavigateToDashboard={() => setPage('login')} />;
   }
 
   // Authenticated — show Navbar + content
   const renderContent = () => {
     switch (activeTab) {
-      case 'home':
-        return <LandingPage onNavigateToDashboard={() => setActiveTab('dashboard')} />;
       case 'dashboard':
         return (
           <Dashboard

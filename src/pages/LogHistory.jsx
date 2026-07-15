@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 const LogHistory = ({ onNavigateBack, onLogout }) => {
   const [logs, setLogs] = useState([]);
@@ -25,19 +26,18 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
       if (filters.startDate) params.append('start_date', filters.startDate);
       if (filters.endDate) params.append('end_date', filters.endDate);
 
-      const res = await fetch(`/api/logs/?${params.toString()}`, { headers });
+      const res = await fetch(`${API_URL}/api/logs/?${params.toString()}`, { headers });
       if (res.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/';
         return;
       }
-      if (!res.ok) throw new Error('Failed to fetch logs');
       const data = await res.json();
       setLogs(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch logs');
-      console.error('Fetch error:', err);
+      setError('Failed to fetch logs');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`/api/logs/delete_log/`, {
+      const res = await fetch(`${API_URL}/api/logs/delete_log/`, {
         method: 'DELETE',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ log_id: id })
@@ -72,7 +72,7 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch('/api/logs/summary/', {
+      const res = await fetch(`${API_URL}/api/logs/summary/`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ log_id: logId })
@@ -114,54 +114,15 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
 
         {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">❌ {error}</div>}
 
-        {/* Search & Filters */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="🔍 Search filename..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]"
-          />
-          <input
-            type="text"
-            placeholder="📡 IP Address..."
-            value={filters.ip}
-            onChange={(e) => setFilters({...filters, ip: e.target.value})}
-            className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]"
-          />
-          <input
-            type="text"
-            placeholder="⚡ Event..."
-            value={filters.event}
-            onChange={(e) => setFilters({...filters, event: e.target.value})}
-            className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]"
-          />
-          <input
-            type="date"
-            value={filters.startDate}
-            onChange={(e) => setFilters({...filters, startDate: e.target.value})}
-            className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white"
-            placeholder="Start Date"
-            title="Start Date (from)"
-          />
-          <input
-            type="date"
-            value={filters.endDate}
-            onChange={(e) => setFilters({...filters, endDate: e.target.value})}
-            className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white"
-            placeholder="End Date"
-            title="End Date (to)"
-          />
-          <button
-            onClick={clearFilters}
-            className="p-2 bg-[#f59e0b]/20 text-[#f59e0b] rounded-lg hover:bg-[#f59e0b]/30 transition"
-          >
-            Clear Filters
-          </button>
+          <input type="text" placeholder="🔍 Search filename..." value={search} onChange={(e) => setSearch(e.target.value)} className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]" />
+          <input type="text" placeholder="📡 IP Address..." value={filters.ip} onChange={(e) => setFilters({...filters, ip: e.target.value})} className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]" />
+          <input type="text" placeholder="⚡ Event..." value={filters.event} onChange={(e) => setFilters({...filters, event: e.target.value})} className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f59e0b]" />
+          <input type="date" value={filters.startDate} onChange={(e) => setFilters({...filters, startDate: e.target.value})} className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white" />
+          <input type="date" value={filters.endDate} onChange={(e) => setFilters({...filters, endDate: e.target.value})} className="p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white" />
+          <button onClick={clearFilters} className="p-2 bg-[#f59e0b]/20 text-[#f59e0b] rounded-lg hover:bg-[#f59e0b]/30 transition">Clear Filters</button>
         </div>
 
-        {/* Summary Modal */}
         {summary && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
             <div className="bg-[#1a1a1a] p-6 rounded-xl border border-[#f59e0b]/30 max-w-2xl w-full m-4">
@@ -175,7 +136,6 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
           </div>
         )}
 
-        {/* Logs Table */}
         <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -196,31 +156,15 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
                   logs.map((log) => (
                     <tr key={log.id} className="border-t border-[#2a2a2a]">
                       <td className="px-4 py-3 text-gray-300">{log.filename}</td>
-                      <td className="px-4 py-3 text-gray-400">
-                        {log.uploaded_at ? new Date(log.uploaded_at).toLocaleDateString() : 'N/A'}
-                      </td>
+                      <td className="px-4 py-3 text-gray-400">{log.uploaded_at ? new Date(log.uploaded_at).toLocaleDateString() : 'N/A'}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          log.status === 'processed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                        }`}>
-                          {log.status || 'pending'}
-                        </span>
+                        <span className={`px-2 py-1 rounded text-xs ${log.status === 'processed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{log.status || 'pending'}</span>
                       </td>
                       <td className="px-4 py-3 text-gray-400">{log.entries_count || 0}</td>
                       <td className="px-4 py-3 text-gray-400">{log.anomalies_count || 0}</td>
                       <td className="px-4 py-3 flex gap-2">
-                        <button
-                          onClick={() => generateSummary(log.id)}
-                          className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition text-xs"
-                        >
-                          📄 Summary
-                        </button>
-                        <button
-                          onClick={() => handleDelete(log.id, log.filename)}
-                          className="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-xs"
-                        >
-                          🗑️ Delete
-                        </button>
+                        <button onClick={() => generateSummary(log.id)} className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition text-xs">📄 Summary</button>
+                        <button onClick={() => handleDelete(log.id, log.filename)} className="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-xs">🗑️ Delete</button>
                       </td>
                     </tr>
                   ))

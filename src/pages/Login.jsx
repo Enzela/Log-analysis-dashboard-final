@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { API_URL } from '../config';
 
 const Login = ({ onLogin, onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ const Login = ({ onLogin, onNavigateToRegister }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/token/', {
+      const response = await fetch(`${API_URL}/api/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

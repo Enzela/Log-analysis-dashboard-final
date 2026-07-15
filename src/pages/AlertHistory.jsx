@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 const AlertHistory = ({ onNavigateBack, onLogout }) => {
   const [alerts, setAlerts] = useState([]);
@@ -31,15 +32,13 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
       const url = filter === 'ALL' ? '/api/alerts/' : `/api/alerts/?severity=${filter}`;
-      const res = await fetch(url, { headers });
-      
+      const res = await fetch(`${API_URL}${url}`, { headers });
       if (res.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/';
         return;
       }
-      
       const data = await res.json();
       let alertsArray = [];
       if (Array.isArray(data)) {
@@ -48,44 +47,15 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
         alertsArray = data.results;
       } else if (data.alerts) {
         alertsArray = data.alerts;
-      } else {
-        alertsArray = [];
       }
-      
-      alertsArray = alertsArray.map(alert => ({
-        ...alert,
-        severity: alert.severity ? alert.severity.toUpperCase() : 'LOW'
-      }));
-      
+      // ensure severity uppercase
+      alertsArray = alertsArray.map(a => ({ ...a, severity: a.severity ? a.severity.toUpperCase() : 'LOW' }));
       setAlerts(alertsArray);
     } catch (error) {
       console.error('Error fetching alerts:', error);
       setError('Failed to load alerts');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ✅ Download function with token
-  const downloadReport = async (format) => {
-    try {
-      const token = localStorage.getItem('token');
-      const url = `/api/reports/${format}/?severity=${filter}`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `alerts_report_${format}.${format === 'pdf' ? 'pdf' : 'csv'}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    } catch (err) {
-      setError('Failed to download report');
-      console.error(err);
     }
   };
 
@@ -102,42 +72,19 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
-            <button
-              onClick={onNavigateBack}
-              className="px-4 py-2 bg-[#1a1a1a] text-gray-400 rounded-lg hover:bg-[#2a2a2a] transition text-sm border border-[#2a2a2a]"
-            >
+            <button onClick={onNavigateBack} className="px-4 py-2 bg-[#1a1a1a] text-gray-400 rounded-lg hover:bg-[#2a2a2a] transition text-sm border border-[#2a2a2a]">
               ← Back to Dashboard
             </button>
             <h1 className="text-3xl font-bold text-white">🚨 Alert History</h1>
           </div>
           <div className="flex items-center gap-4">
-            {/* ✅ PDF / CSV Download Buttons */}
-            <button
-              onClick={() => downloadReport('pdf')}
-              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
-            >
-              📄 PDF
-            </button>
-            <button
-              onClick={() => downloadReport('csv')}
-              className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition text-sm"
-            >
-              📊 CSV
-            </button>
-            <button
-              onClick={onLogout}
-              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
-            >
-              🚪 Logout
-            </button>
+            <button onClick={() => window.open(`${API_URL}/api/reports/pdf/?severity=${filter}`, '_blank')} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">📄 PDF</button>
+            <button onClick={() => window.open(`${API_URL}/api/reports/csv/?severity=${filter}`, '_blank')} className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition text-sm">📊 CSV</button>
+            <button onClick={onLogout} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">🚪 Logout</button>
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">
-            ❌ {error}
-          </div>
-        )}
+        {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">❌ {error}</div>}
 
         <div className="flex gap-2 mb-6 flex-wrap">
           {['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((sev) => (

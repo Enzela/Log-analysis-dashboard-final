@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 const LandingPage = ({ onNavigateToDashboard }) => {
   const [letters, setLetters] = useState([]);
@@ -46,7 +47,8 @@ const LandingPage = ({ onNavigateToDashboard }) => {
       const headers = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch("/api/logs/upload/", {
+      // ✅ API_URL use गर
+      const res = await fetch(`${API_URL}/api/logs/upload/`, {
         method: "POST",
         headers: headers,
         body: formData,
@@ -62,13 +64,19 @@ const LandingPage = ({ onNavigateToDashboard }) => {
     }
   };
 
+  const handleCardClick = () => {
+    if (isLoggedIn()) {
+      onNavigateToDashboard();
+    } else {
+      onNavigateToDashboard();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      {/* Background glow — yellow */}
       <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-radial from-[#f59e0b]/10 to-transparent opacity-30 animate-pulse" />
 
       <div className="relative z-10 text-center max-w-4xl w-full">
-        {/* Sliding Letters — Yellow/Orange */}
         <div className="flex flex-wrap justify-center gap-1 mb-6">
           {letters.map((item, idx) => (
             <span
@@ -90,7 +98,6 @@ const LandingPage = ({ onNavigateToDashboard }) => {
           AI-Powered Log Analysis &amp; Threat Detection
         </p>
 
-        {/* If logged in — show Upload Section */}
         {isLoggedIn() ? (
           <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-[#f59e0b]/30 max-w-2xl mx-auto mb-6 animate-fadeIn delay-700">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -122,7 +129,6 @@ const LandingPage = ({ onNavigateToDashboard }) => {
             </div>
             {error && <p className="text-red-500 mt-3 text-sm">❌ {error}</p>}
 
-            {/* Result Preview */}
             {result && (
               <div className="mt-4 p-4 bg-black rounded-xl border border-[#f59e0b]/20">
                 <div className="flex gap-8 justify-center">
@@ -157,7 +163,6 @@ const LandingPage = ({ onNavigateToDashboard }) => {
             )}
           </div>
         ) : (
-          /* If NOT logged in — show Get Started button (Air Canvas style) */
           <button
             onClick={onNavigateToDashboard}
             className="px-10 py-4 bg-black border-2 border-[#f59e0b] text-[#f59e0b] text-lg font-semibold rounded-xl hover:bg-[#f59e0b] hover:text-black transition-all duration-300 shadow-lg shadow-[#f59e0b]/25 animate-fadeIn delay-700"
@@ -167,7 +172,6 @@ const LandingPage = ({ onNavigateToDashboard }) => {
         )}
       </div>
 
-      {/* Footer */}
       <div className="absolute bottom-4 text-gray-600 text-xs">
         © 2026 LogGuard AI — Built with ❤️
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../config';
 
 const Register = ({ onRegister }) => {
   const [name, setName] = useState('');
@@ -33,7 +34,7 @@ const Register = ({ onRegister }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/register/', {
+      const response = await fetch(`${API_URL}/api/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -47,7 +48,6 @@ const Register = ({ onRegister }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        // ✅ Better error message for duplicate email
         if (response.status === 400 && data.error && data.error.includes('already')) {
           throw new Error('This email is already registered. Please login instead.');
         }
@@ -66,7 +66,6 @@ const Register = ({ onRegister }) => {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
       <div className="bg-[#1a1a1a] p-8 rounded-2xl border border-[#2a2a2a] w-full max-w-md">
-        {/* ✅ "bugcetana" हटाइयो — "LogGuard AI" राखियो */}
         <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-[#f59e0b] to-[#f97316] bg-clip-text text-transparent">
           LogGuard AI
         </h1>
