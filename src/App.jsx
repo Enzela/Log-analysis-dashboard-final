@@ -44,21 +44,16 @@ function App() {
     setActiveTab('dashboard');
   };
 
-  // If not authenticated, show Login/Register
   if (!isAuthenticated) {
-    if (page === 'register') {
-      return <Register onRegister={() => setPage('login')} />;
-    }
-    if (page === 'login') {
-      return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
-    }
-    // Landing page
+    if (page === 'register') return <Register onRegister={() => setPage('login')} />;
+    if (page === 'login') return <Login onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} />;
     return <LandingPage onNavigateToDashboard={() => setPage('login')} />;
   }
 
-  // Authenticated — show Navbar + content
   const renderContent = () => {
     switch (activeTab) {
+      case 'home':
+        return <LandingPage onNavigateToDashboard={() => setActiveTab('dashboard')} />;
       case 'dashboard':
         return (
           <Dashboard

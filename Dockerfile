@@ -1,17 +1,22 @@
-FROM node:18-alpine as build
+@'
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN npm run build
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-# nginx.conf अलग file बाट copy गर्न
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN python manage.py collectstatic --noinput
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8000
+
+# ✅ start.sh removed – direct CMD
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn logguard_backend.wsgi:application --bind 0.0.0.0:8000"]
+'@ | Out-File -Encoding utf8 -FilePath logguard_backend/Dockerfile
