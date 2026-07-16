@@ -84,6 +84,28 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
     }
   };
 
+  // ✅ नयाँ: Export PDF with token
+  const downloadLogsPDF = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/reports/logs-pdf/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'log_history.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      setError('Failed to download PDF');
+      console.error(err);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({ ip: '', event: '', startDate: '', endDate: '' });
     setSearch('');
@@ -107,9 +129,15 @@ const LogHistory = ({ onNavigateBack, onLogout }) => {
             </button>
             <h1 className="text-3xl font-bold text-white">📁 Log History</h1>
           </div>
-          <button onClick={onLogout} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">
-            🚪 Logout
-          </button>
+          <div className="flex items-center gap-4">
+            {/* ✅ Export PDF button — अब token पठाउँछ */}
+            <button onClick={downloadLogsPDF} className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition text-sm">
+              📄 Export PDF
+            </button>
+            <button onClick={onLogout} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">
+              🚪 Logout
+            </button>
+          </div>
         </div>
 
         {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">❌ {error}</div>}
