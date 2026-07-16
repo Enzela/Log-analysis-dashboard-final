@@ -48,7 +48,6 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       } else if (data.alerts) {
         alertsArray = data.alerts;
       }
-      // ensure severity uppercase
       alertsArray = alertsArray.map(a => ({ ...a, severity: a.severity ? a.severity.toUpperCase() : 'LOW' }));
       setAlerts(alertsArray);
     } catch (error) {
@@ -56,6 +55,29 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
       setError('Failed to load alerts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ New: Download function with token
+  const downloadReport = async (format) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = `${API_URL}/api/reports/${format}/?severity=${filter}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `alerts_report.${format === 'pdf' ? 'pdf' : 'csv'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      setError('Failed to download report');
+      console.error(err);
     }
   };
 
@@ -78,8 +100,9 @@ const AlertHistory = ({ onNavigateBack, onLogout }) => {
             <h1 className="text-3xl font-bold text-white">🚨 Alert History</h1>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => window.open(`${API_URL}/api/reports/pdf/?severity=${filter}`, '_blank')} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">📄 PDF</button>
-            <button onClick={() => window.open(`${API_URL}/api/reports/csv/?severity=${filter}`, '_blank')} className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition text-sm">📊 CSV</button>
+            {/* ✅ Updated buttons with download function */}
+            <button onClick={() => downloadReport('pdf')} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">📄 PDF</button>
+            <button onClick={() => downloadReport('csv')} className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition text-sm">📊 CSV</button>
             <button onClick={onLogout} className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm">🚪 Logout</button>
           </div>
         </div>
