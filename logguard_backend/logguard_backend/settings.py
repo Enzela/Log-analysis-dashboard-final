@@ -25,13 +25,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     
-               # ✅ Captcha
+               
     'api',
 ]
 
 # ---------- MIDDLEWARE ----------
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -88,8 +88,17 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ---------- CORS ----------
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
+# ---------- CORS (Hardcoded for production) ----------
+CORS_ALLOWED_ORIGINS = [
+    "https://logguard-frontend.onrender.com",
+    "http://localhost:5173",
+]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = ['*']
+CORS_ALLOW_HEADERS = ['*']
+
+# Optional: For debugging, allow all (तर production मा नगर)
+# CORS_ORIGIN_ALLOW_ALL = True
 
 # ---------- REST FRAMEWORK (JWT) ----------
 REST_FRAMEWORK = {
