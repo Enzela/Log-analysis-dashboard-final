@@ -24,16 +24,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    
-               
     'api',
 ]
 
 # ---------- MIDDLEWARE ----------
+# IMPORTANT: CorsMiddleware should be placed as high as possible, but after SecurityMiddleware.
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',   
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.security.SecurityMiddleware',       # 1st
+    'corsheaders.middleware.CorsMiddleware',               # 2nd (after Security)
+    'whitenoise.middleware.WhiteNoiseMiddleware',          # 3rd (if using WhiteNoise)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,7 +66,6 @@ DATABASES = {
 }
 
 # ---------- CACHES (for django-ratelimit) ----------
-# ✅ DatabaseCache — shared cache, works with ratelimit
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -88,7 +86,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ---------- CORS ----------
-# ---------- CORS (Hardcoded for production) ----------
 CORS_ALLOWED_ORIGINS = [
     "https://logguard-frontend.onrender.com",
     "http://localhost:5173",
@@ -96,9 +93,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
-
-# Optional: For debugging, allow all (तर production मा नगर)
-# CORS_ORIGIN_ALLOW_ALL = True
 
 # ---------- REST FRAMEWORK (JWT) ----------
 REST_FRAMEWORK = {
@@ -117,7 +111,6 @@ SIMPLE_JWT = {
 }
 
 # ---------- RECAPTCHA ----------
-# ✅ Test keys (working on localhost)
 RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJjrW0')
 
