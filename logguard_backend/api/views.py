@@ -9,8 +9,6 @@ from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
 from .services import send_alert_email
-from .ml_service import predict_anomaly
-from .permissions import IsAdminUser, IsAnalyst
 import json
 import re
 import PyPDF2
@@ -41,6 +39,25 @@ def parse_raw_line(line):
             }
     return {'raw': line}
 
+def detect_anomaly_keyword(entry):
+    """Keyword-based detection (no ML, memory safe)"""
+    text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
+    text_lower = text.lower()
+    is_anomaly = False
+    severity = Severity.LOW
+    if any(w in text_lower for w in ['brute', 'forced']):
+        is_anomaly = True
+        severity = Severity.CRITICAL
+    elif any(w in text_lower for w in ['unauthorized', 'access denied']):
+        is_anomaly = True
+        severity = Severity.HIGH
+    elif any(w in text_lower for w in ['failed', 'invalid', 'attempt']):
+        is_anomaly = True
+        severity = Severity.MEDIUM
+    elif any(w in text_lower for w in ['scan', 'probe']):
+        is_anomaly = True
+        severity = Severity.MEDIUM
+    return is_anomaly, severity
 
 class LogFileViewSet(viewsets.ModelViewSet):
     queryset = LogFile.objects.all()
@@ -48,12 +65,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    @action(
-        detail=False,
-        methods=['post'],
-        permission_classes=[AllowAny],
-        authentication_classes=[]
-    )
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
     def upload(self, request):
         file = request.FILES.get('file')
         if not file:
@@ -108,40 +120,8 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         anomalies = []
         for entry in entries:
-            # ML model prediction (with fallback to keyword-based)
-            try:
-                is_anomaly, ml_score = predict_anomaly(entry)
-            except Exception as e:
-                # Fallback: keyword-based detection
-                text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
-                text_lower = text.lower()
-                is_anomaly = False
-                ml_score = 0.0
-                if any(w in text_lower for w in ['brute', 'forced']):
-                    is_anomaly = True
-                    ml_score = -0.6
-                elif any(w in text_lower for w in ['unauthorized', 'access denied']):
-                    is_anomaly = True
-                    ml_score = -0.4
-                elif any(w in text_lower for w in ['failed', 'invalid', 'attempt']):
-                    is_anomaly = True
-                    ml_score = -0.2
-                elif any(w in text_lower for w in ['scan', 'probe']):
-                    is_anomaly = True
-                    ml_score = -0.2
-
-            # Map ML score to severity
-            if is_anomaly:
-                if ml_score < -0.5:
-                    severity = Severity.CRITICAL
-                elif ml_score < -0.3:
-                    severity = Severity.HIGH
-                elif ml_score < -0.1:
-                    severity = Severity.MEDIUM
-                else:
-                    severity = Severity.LOW
-            else:
-                severity = Severity.LOW
+            # ✅ Keyword-based only (memory safe, no ML model load)
+            is_anomaly, severity = detect_anomaly_keyword(entry)
 
             # Parse timestamp
             try:
@@ -172,7 +152,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             event = entry.get('event', entry.get('raw', 'unknown'))
             message = entry.get('message', '')
 
-            # Create LogEntry
             log_entry = LogEntry.objects.create(
                 log_file=log_file,
                 timestamp=timestamp,
@@ -181,10 +160,9 @@ class LogFileViewSet(viewsets.ModelViewSet):
                 message=message[:500],
                 severity=severity,
                 is_anomaly=1 if is_anomaly else 0,
-                score=ml_score if is_anomaly else None
+                score=None
             )
 
-            # Create Alert if anomaly
             if is_anomaly:
                 anomalies.append(entry)
                 Alert.objects.create(
@@ -193,7 +171,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
 
-                # ✅ Send email for CRITICAL severity
+                # Send email for CRITICAL
                 if severity == Severity.CRITICAL:
                     send_alert_email(
                         severity=severity,
@@ -282,7 +260,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
         serializer = LogEntrySerializer(qs[:100], many=True)
         return Response({'entries': serializer.data})
 
-
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()
     serializer_class = AlertSerializer
@@ -310,7 +287,6 @@ class AlertViewSet(viewsets.ModelViewSet):
         if end_date:
             qs = qs.filter(created_at__lte=end_date)
         return qs.order_by('-created_at')
-
 
 class RegisterViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]

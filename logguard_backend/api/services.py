@@ -40,4 +40,5 @@ Please check the dashboard immediately.
         return True
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
+        # यो error ले app crash गराउँदैन (caller मा try-except छ)
         return False
