@@ -1,4 +1,3 @@
-# FORCE REBUILD - 2026-07-21
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -178,7 +177,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
         log_file.status = 'processed'
         log_file.save()
 
-        # ✅ Manual CORS headers — यो CORS error fix गर्छ
         response_data = {
             'success': True,
             'detected': len(entries),
@@ -186,11 +184,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
             'entries': entries[:10],
             'anomaly_list': anomalies[:5]
         }
-        response = Response(response_data, status=200)
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Accept, Authorization, Content-Type, X-CSRFToken'
-        return response
+        return Response(response_data, status=200)
 
     def list(self, request):
         queryset = LogFile.objects.annotate(
