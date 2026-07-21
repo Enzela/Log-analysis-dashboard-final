@@ -16,5 +16,5 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# ✅ workers=1 set गरियो (memory बचाउन)
+# ✅ workers=1 for memory efficiency
 CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn logguard_backend.wsgi:application --bind 0.0.0.0:8000 --workers=1"]

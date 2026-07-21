@@ -40,7 +40,7 @@ def parse_raw_line(line):
     return {'raw': line}
 
 def detect_anomaly_keyword(entry):
-    """Keyword-based detection (no ML, memory safe)"""
+    """Keyword-based detection (memory safe)"""
     text = str(entry.get('event', '')) + ' ' + str(entry.get('message', '')) + ' ' + str(entry.get('raw', ''))
     text_lower = text.lower()
     is_anomaly = False
@@ -73,7 +73,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         content = file.read()
 
-        # ---------- PDF SUPPORT ----------
+        # PDF, JSON, TXT parsing...
         if file.name.lower().endswith('.pdf'):
             try:
                 pdf_reader = PyPDF2.PdfReader(BytesIO(content))
@@ -92,7 +92,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 return Response({'error': f'Failed to parse PDF: {str(e)}'}, status=400)
 
-        # ---------- JSON SUPPORT ----------
         elif file.name.lower().endswith('.json'):
             try:
                 data = json.loads(content)
@@ -100,7 +99,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             except json.JSONDecodeError:
                 return Response({'error': 'Invalid JSON'}, status=400)
 
-        # ---------- TXT SUPPORT ----------
         elif file.name.lower().endswith('.txt'):
             lines = content.decode('utf-8').splitlines()
             entries = []
@@ -120,10 +118,9 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
         anomalies = []
         for entry in entries:
-            # ✅ Keyword-based only (memory safe, no ML model load)
             is_anomaly, severity = detect_anomaly_keyword(entry)
 
-            # Parse timestamp
+            # Timestamp
             try:
                 timestamp = entry.get('timestamp')
                 if timestamp:
@@ -141,7 +138,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
             except:
                 timestamp = timezone.now()
 
-            # Extract IP
             ip = entry.get('ip', '')
             if not ip:
                 text = str(entry.get('raw', '')) + ' ' + str(entry.get('message', ''))
@@ -170,8 +166,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     severity=severity,
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
-
-                # Send email for CRITICAL
                 if severity == Severity.CRITICAL:
                     send_alert_email(
                         severity=severity,
