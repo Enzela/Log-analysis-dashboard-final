@@ -64,7 +64,7 @@ const LandingPage = ({ onNavigateToDashboard }) => {
     }
   };
 
-  // ✅ नयाँ function: Report पठाउने
+  // ✅ Send Report function
   const handleSendReport = async () => {
     if (!result) {
       alert('⚠️ Please scan a log file first.');
@@ -179,15 +179,15 @@ const LandingPage = ({ onNavigateToDashboard }) => {
                   </div>
                 </div>
 
-                {/* ✅ नयाँ "Send Report" बटन */}
-                <div className="mt-3">
+                {/* ✅ Send Report Button */}
+                <div className="mt-4">
                   <button
                     onClick={handleSendReport}
                     disabled={sending}
-                    className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
+                    className={`px-6 py-2.5 rounded-lg text-sm font-medium transition ${
                       sending
                         ? 'bg-gray-600 cursor-not-allowed text-gray-300'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30'
                     }`}
                   >
                     {sending ? '⏳ Sending...' : '📧 Send Report via Email'}
