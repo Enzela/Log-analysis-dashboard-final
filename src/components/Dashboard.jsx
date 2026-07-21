@@ -14,6 +14,26 @@ const Dashboard = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ✅ State for last scan results (for email report)
+  const [anomalies, setAnomalies] = useState([]);
+  const [totalEntries, setTotalEntries] = useState(0);
+
+  // Load last scan data from localStorage on mount
+  useEffect(() => {
+    const savedAnomalies = localStorage.getItem('lastScanAnomalies');
+    const savedTotal = localStorage.getItem('lastScanTotal');
+    if (savedAnomalies) {
+      try {
+        setAnomalies(JSON.parse(savedAnomalies));
+      } catch (e) {
+        setAnomalies([]);
+      }
+    }
+    if (savedTotal) {
+      setTotalEntries(parseInt(savedTotal, 10) || 0);
+    }
+  }, []);
+
   const severityColors = {
     LOW: 'bg-green-500/20 text-green-400 border border-green-500/30',
     MEDIUM: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
@@ -77,6 +97,38 @@ const Dashboard = ({
     }
   };
 
+  // ✅ Send report via email
+  const handleSendReport = async () => {
+    const email = prompt('Enter your email address:');
+    if (!email) return;
+
+    // If no scan data, show warning
+    if (anomalies.length === 0 && totalEntries === 0) {
+      alert('⚠️ No scan data found. Please upload a log file first.');
+      return;
+    }
+
+    try {
+      const response = await fetch('https://log-analysis-dashboard-final.onrender.com/api/logs/send_report/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          anomalies: anomalies,
+          total_entries: totalEntries
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert('✅ Report sent successfully! Check your inbox.');
+      } else {
+        alert('❌ Error: ' + data.error);
+      }
+    } catch (error) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -98,7 +150,7 @@ const Dashboard = ({
             </button>
             <h1 className="text-3xl font-bold text-white">📊 Dashboard</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <span className="text-gray-400 text-sm">👤 {user?.username || 'User'}</span>
             <button
               onClick={onNavigateToLogs}
@@ -112,6 +164,13 @@ const Dashboard = ({
             >
               🚨 View Alerts
             </button>
+            {/* ✅ NEW: Send Report Button */}
+            <button
+              onClick={handleSendReport}
+              className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition text-sm border border-blue-500/30"
+            >
+              📧 Send Report
+            </button>
             <button
               onClick={onLogout}
               className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition text-sm"
@@ -124,6 +183,18 @@ const Dashboard = ({
         {error && (
           <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-500/30">
             ❌ {error}
+          </div>
+        )}
+
+        {/* ✅ Show last scan summary if available */}
+        {(anomalies.length > 0 || totalEntries > 0) && (
+          <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#2a2a2a] mb-6 flex items-center justify-between">
+            <div>
+              <span className="text-gray-400 text-sm">📋 Last Scan:</span>
+              <span className="ml-3 text-white font-medium">{totalEntries} entries</span>
+              <span className="ml-3 text-yellow-400 font-medium">{anomalies.length} anomalies</span>
+            </div>
+            <span className="text-xs text-gray-500">Click "Send Report" to email this summary</span>
           </div>
         )}
 
