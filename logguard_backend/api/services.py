@@ -10,7 +10,6 @@ SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 ALERT_RECIPIENT = os.getenv('ALERT_RECIPIENT', 'enzela@test.com')
 
 def send_alert_email(severity, message, ip, event):
-    """Send email alert for critical threats"""
     if not SMTP_USER or not SMTP_PASSWORD:
         print("⚠️ SMTP credentials not set. Email not sent.")
         return False
