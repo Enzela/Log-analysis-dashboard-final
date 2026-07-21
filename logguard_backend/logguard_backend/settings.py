@@ -26,7 +26,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'api.middleware.ForceCorsMiddleware',   # ✅ सबैभन्दा माथि (Custom)
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -36,7 +35,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+ 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+ ]
+
 
 ROOT_URLCONF = 'logguard_backend.urls'
 
@@ -83,7 +84,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
-CORS_ORIGIN_ALLOW_ALL = True   # अन्तिम उपाय
+#CORS_ORIGIN_ALLOW_ALL = True   # अन्तिम उपाय
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
