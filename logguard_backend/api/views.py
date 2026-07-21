@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.contrib.auth import get_user_model   # ✅ यो line थप
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
@@ -15,7 +15,7 @@ import re
 import PyPDF2
 from io import BytesIO
 
-User = get_user_model()   # ✅ अब यो defined छ
+User = get_user_model()
 
 def parse_raw_line(line):
     if not line:
@@ -178,13 +178,19 @@ class LogFileViewSet(viewsets.ModelViewSet):
         log_file.status = 'processed'
         log_file.save()
 
-        return Response({
+        # ✅ Manual CORS headers — यो CORS error fix गर्छ
+        response_data = {
             'success': True,
             'detected': len(entries),
             'anomalies': len(anomalies),
             'entries': entries[:10],
             'anomaly_list': anomalies[:5]
-        })
+        }
+        response = Response(response_data, status=200)
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Accept, Authorization, Content-Type, X-CSRFToken'
+        return response
 
     def list(self, request):
         queryset = LogFile.objects.annotate(
