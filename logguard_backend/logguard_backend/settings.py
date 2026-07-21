@@ -114,8 +114,8 @@ RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1
 # ---------- RESEND (EMAIL) ----------
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 
-# ---------- ADMIN EMAIL (for alerts) ----------
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@example.com')
+# ---------- ADMIN EMAIL (for critical alerts) ----------
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'neupaneenzela@gmail.com')
 
 # ---------- INTERNATIONALIZATION ----------
 LANGUAGE_CODE = 'en-us'
