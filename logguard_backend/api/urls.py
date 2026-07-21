@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import LogFileViewSet, AlertViewSet, RegisterViewSet
+from .views import LogFileViewSet, AlertViewSet, RegisterViewSet, send_report_email
 from .reports import export_pdf, export_csv, export_logs_pdf
 
 router = DefaultRouter()
@@ -13,4 +13,6 @@ urlpatterns = [
     path('reports/pdf/', export_pdf, name='export_pdf'),
     path('reports/csv/', export_csv, name='export_csv'),
     path('reports/logs-pdf/', export_logs_pdf, name='export_logs_pdf'),
+    # नयाँ endpoint
+    path('logs/send_report/', send_report_email, name='send_report'),
 ]

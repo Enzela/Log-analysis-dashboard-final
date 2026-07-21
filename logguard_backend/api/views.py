@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
-from .services import send_alert_email
+from .services import send_alert_email, send_email_via_resend
 import json
 import re
 import PyPDF2
@@ -167,9 +167,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
                 if severity == Severity.CRITICAL:
-                    # Wrapped in try/except: an SMTP hang/failure must never
-                    # block or crash the upload response (this was the root
-                    # cause of the WORKER TIMEOUT / apparent "CORS" errors).
+                    # Wrapped in try/except: an SMTP hang/failure must never block
                     try:
                         send_alert_email(
                             severity=severity,
@@ -231,7 +229,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def delete_log(self, request):
-        # Permission check हटाइयो — सबै logged-in users लाई allow
         log_id = request.data.get('log_id')
         if not log_id:
             return Response({'error': 'log_id required'}, status=400)
@@ -259,6 +256,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
             qs = qs.filter(severity=severity)
         serializer = LogEntrySerializer(qs[:100], many=True)
         return Response({'entries': serializer.data})
+
 
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()
@@ -304,3 +302,43 @@ class RegisterViewSet(viewsets.ViewSet):
             return Response({'error': 'Email already registered'}, status=400)
         user = User.objects.create_user(username=username, email=email, password=password, first_name=name, role='analyst')
         return Response({'success': True, 'message': 'User registered successfully', 'user_id': user.id})
+
+
+# ---------- नयाँ endpoint: Report send गर्ने (Resend) ----------
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_report_email(request):
+    """
+    Frontend बाट scan result को report email मा पठाउने endpoint
+    """
+    try:
+        email = request.data.get('email')
+        anomalies = request.data.get('anomalies', [])
+        total_entries = request.data.get('total_entries', 0)
+
+        if not email:
+            return Response({'error': 'Email is required'}, status=400)
+
+        # HTML body
+        html_body = f"""
+        <h2>Log Guard AI — Scan Report</h2>
+        <p><strong>Total Entries:</strong> {total_entries}</p>
+        <p><strong>Anomalies Found:</strong> {len(anomalies)}</p>
+        <h3>Detected Anomalies</h3>
+        <ul>
+        """
+        for a in anomalies:
+            timestamp = a.get('timestamp', 'N/A')
+            event = a.get('event', 'Unknown')
+            html_body += f"<li>{timestamp} — {event}</li>"
+        html_body += "</ul>"
+
+        success, result = send_email_via_resend(email, 'Log Guard AI — Anomaly Report', html_body)
+
+        if success:
+            return Response({'message': 'Email sent successfully', 'id': result})
+        else:
+            return Response({'error': f'Email sending failed: {result}'}, status=500)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

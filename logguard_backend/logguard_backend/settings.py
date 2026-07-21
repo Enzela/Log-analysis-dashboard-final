@@ -28,9 +28,8 @@ INSTALLED_APPS = [
 ]
 
 # ---------- MIDDLEWARE ----------
-# ✅ Custom CORS middleware (सबैभन्दा माथि) — OPTIONS request पनि handle गर्छ
 MIDDLEWARE = [
-    'api.middleware.ForceCorsMiddleware',   # ✅ पहिलो
+    'api.middleware.ForceCorsMiddleware',   # ✅ Custom middleware (पहिलो)
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -82,8 +81,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ---------- CORS (Fallback) ----------
-# यो setting ले काम नगरे पनि, middleware ले forcefully headers थप्छ।
+# ---------- CORS ----------
 CORS_ALLOWED_ORIGINS = [
     "https://logguard-frontend.onrender.com",
     "http://localhost:5173",
@@ -93,7 +91,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
 
-# ---------- REST FRAMEWORK (JWT) ----------
+# ---------- REST FRAMEWORK ----------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -112,6 +110,12 @@ SIMPLE_JWT = {
 # ---------- RECAPTCHA ----------
 RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJjrW0')
+
+# ---------- RESEND (EMAIL) ----------
+RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+
+# ---------- ADMIN EMAIL (for alerts) ----------
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@example.com')
 
 # ---------- INTERNATIONALIZATION ----------
 LANGUAGE_CODE = 'en-us'
