@@ -1,10 +1,9 @@
 class ForceCorsMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        print("✅ ForceCorsMiddleware loaded!")  # Deploy logs मा देखिन्छ
+        print("✅ ForceCorsMiddleware loaded!")
 
     def __call__(self, request):
-        # Preflight OPTIONS request handle
         if request.method == 'OPTIONS':
             response = self.get_response(request)
             response['Access-Control-Allow-Origin'] = '*'

@@ -1,3 +1,4 @@
+# FORCE REBUILD - 2026-07-21
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -177,6 +178,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
         log_file.status = 'processed'
         log_file.save()
 
+        # ✅ Manual CORS headers — यसले CORS error fix गर्छ
         response_data = {
             'success': True,
             'detected': len(entries),
@@ -184,7 +186,11 @@ class LogFileViewSet(viewsets.ModelViewSet):
             'entries': entries[:10],
             'anomaly_list': anomalies[:5]
         }
-        return Response(response_data, status=200)
+        response = Response(response_data, status=200)
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Accept, Authorization, Content-Type, X-CSRFToken'
+        return response
 
     def list(self, request):
         queryset = LogFile.objects.annotate(
@@ -225,8 +231,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def delete_log(self, request):
-        if request.user.role != 'admin':
-            return Response({'error': 'Permission denied. Admin only.'}, status=403)
+        # Permission check हटाइयो — सबै logged-in users लाई allow
         log_id = request.data.get('log_id')
         if not log_id:
             return Response({'error': 'log_id required'}, status=400)
