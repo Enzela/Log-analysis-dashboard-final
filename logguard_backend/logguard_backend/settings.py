@@ -24,15 +24,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django_ratelimit',
     'api',
 ]
 
 # ---------- MIDDLEWARE ----------
-# IMPORTANT: CorsMiddleware should be placed as high as possible, but after SecurityMiddleware.
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',       # 1st
-    'corsheaders.middleware.CorsMiddleware',               # 2nd (after Security)
-    'whitenoise.middleware.WhiteNoiseMiddleware',          # 3rd (if using WhiteNoise)
+    'corsheaders.middleware.CorsMiddleware',   # ✅ सबैभन्दा माथि
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -65,17 +65,13 @@ DATABASES = {
     'default': dj_database_url.config(default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'))
 }
 
-# ---------- CACHES (for django-ratelimit) ----------
+# ---------- CACHES ----------
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
         'LOCATION': 'my_cache_table',
     }
 }
-
-# ---------- RATE LIMITING ----------
-RATELIMIT_VIEW = 'api.views.rate_limit_exceeded'
-RATELIMIT_USE_CACHE = 'default'
 
 # ---------- AUTH ----------
 AUTH_USER_MODEL = 'api.User'
@@ -85,10 +81,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ---------- CORS ----------
+# ---------- CORS (Hardcoded for production) ----------
 CORS_ALLOWED_ORIGINS = [
     "https://logguard-frontend.onrender.com",
     "http://localhost:5173",
+    "http://localhost:5174",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['*']
@@ -113,6 +110,10 @@ SIMPLE_JWT = {
 # ---------- RECAPTCHA ----------
 RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJjrW0')
+
+# ---------- RATE LIMITING ----------
+RATELIMIT_VIEW = 'api.views.rate_limit_exceeded'
+RATELIMIT_USE_CACHE = 'default'
 
 # ---------- INTERNATIONALIZATION ----------
 LANGUAGE_CODE = 'en-us'
