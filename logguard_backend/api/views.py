@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
 from .serializers import LogFileSerializer, LogEntrySerializer, AlertSerializer
-from .services import send_alert_email, send_email_via_resend
+from .services import send_alert_email, send_email_via_resend, send_scan_report_email  # ✅ Added send_scan_report_email
 import json
 import re
 import PyPDF2
@@ -167,7 +167,6 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
                 if severity == Severity.CRITICAL:
-                    # Wrapped in try/except: an SMTP hang/failure must never block
                     try:
                         send_alert_email(
                             severity=severity,
@@ -310,6 +309,7 @@ class RegisterViewSet(viewsets.ViewSet):
 def send_report_email(request):
     """
     Frontend बाट scan result को report email मा पठाउने endpoint
+    अब HTML template राम्रोसँग send_scan_report_email मार्फत पठाउँछ।
     """
     try:
         email = request.data.get('email')
@@ -319,21 +319,8 @@ def send_report_email(request):
         if not email:
             return Response({'error': 'Email is required'}, status=400)
 
-        # HTML body
-        html_body = f"""
-        <h2>Log Guard AI — Scan Report</h2>
-        <p><strong>Total Entries:</strong> {total_entries}</p>
-        <p><strong>Anomalies Found:</strong> {len(anomalies)}</p>
-        <h3>Detected Anomalies</h3>
-        <ul>
-        """
-        for a in anomalies:
-            timestamp = a.get('timestamp', 'N/A')
-            event = a.get('event', 'Unknown')
-            html_body += f"<li>{timestamp} — {event}</li>"
-        html_body += "</ul>"
-
-        success, result = send_email_via_resend(email, 'Log Guard AI — Anomaly Report', html_body)
+        # ✅ नयाँ function प्रयोग गर्ने
+        success, result = send_scan_report_email(email, anomalies, total_entries)
 
         if success:
             return Response({'message': 'Email sent successfully', 'id': result})
