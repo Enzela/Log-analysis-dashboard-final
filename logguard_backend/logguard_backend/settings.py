@@ -8,10 +8,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ---------- SECURITY ----------
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+# ---------- INSTALLED APPS ----------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,7 +27,10 @@ INSTALLED_APPS = [
     'api',
 ]
 
+# ---------- MIDDLEWARE ----------
+# ✅ Custom CORS middleware (सबैभन्दा माथि) — OPTIONS request पनि handle गर्छ
 MIDDLEWARE = [
+    'api.middleware.ForceCorsMiddleware',   # ✅ पहिलो
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -35,9 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
- 'django.middleware.clickjacking.XFrameOptionsMiddleware',
- ]
-
+]
 
 ROOT_URLCONF = 'logguard_backend.urls'
 
@@ -58,10 +61,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'logguard_backend.wsgi.application'
 
+# ---------- DATABASE ----------
 DATABASES = {
     'default': dj_database_url.config(default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'))
 }
 
+# ---------- CACHES ----------
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -69,13 +74,16 @@ CACHES = {
     }
 }
 
+# ---------- AUTH ----------
 AUTH_USER_MODEL = 'api.User'
 
+# ---------- STATIC & MEDIA FILES ----------
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ---------- CORS (Hardcoded) ----------
+# ---------- CORS (Fallback) ----------
+# यो setting ले काम नगरे पनि, middleware ले forcefully headers थप्छ।
 CORS_ALLOWED_ORIGINS = [
     "https://logguard-frontend.onrender.com",
     "http://localhost:5173",
@@ -84,8 +92,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
-#CORS_ORIGIN_ALLOW_ALL = True   # अन्तिम उपाय
 
+# ---------- REST FRAMEWORK (JWT) ----------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -101,12 +109,15 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+# ---------- RECAPTCHA ----------
 RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJjrW0')
 
+# ---------- INTERNATIONALIZATION ----------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# ---------- DEFAULT AUTO FIELD ----------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
