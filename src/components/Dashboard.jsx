@@ -14,25 +14,10 @@ const Dashboard = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ State for last scan results (for email report)
+  // ✅ Send Report को लागि state
   const [anomalies, setAnomalies] = useState([]);
   const [totalEntries, setTotalEntries] = useState(0);
-
-  // Load last scan data from localStorage on mount
-  useEffect(() => {
-    const savedAnomalies = localStorage.getItem('lastScanAnomalies');
-    const savedTotal = localStorage.getItem('lastScanTotal');
-    if (savedAnomalies) {
-      try {
-        setAnomalies(JSON.parse(savedAnomalies));
-      } catch (e) {
-        setAnomalies([]);
-      }
-    }
-    if (savedTotal) {
-      setTotalEntries(parseInt(savedTotal, 10) || 0);
-    }
-  }, []);
+  const [sending, setSending] = useState(false);
 
   const severityColors = {
     LOW: 'bg-green-500/20 text-green-400 border border-green-500/30',
@@ -48,6 +33,22 @@ const Dashboard = ({
     CRITICAL: '🔴 CRITICAL'
   };
 
+  // ✅ localStorage बाट पछिल्लो scan data पढ्ने
+  useEffect(() => {
+    const savedAnomalies = localStorage.getItem('lastScanAnomalies');
+    if (savedAnomalies) {
+      try {
+        setAnomalies(JSON.parse(savedAnomalies));
+      } catch (e) {
+        setAnomalies([]);
+      }
+    }
+    const savedTotal = localStorage.getItem('lastScanTotal');
+    if (savedTotal) {
+      setTotalEntries(parseInt(savedTotal, 10) || 0);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [filter]);
@@ -59,7 +60,6 @@ const Dashboard = ({
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // ✅ Stats
       const statsRes = await fetch(`${API_URL}/api/logs/stats/`, { headers });
       if (statsRes.status === 401) {
         localStorage.removeItem('token');
@@ -70,7 +70,6 @@ const Dashboard = ({
       const statsData = await statsRes.json();
       setStats(statsData);
 
-      // ✅ Alerts
       const url = filter === 'ALL' ? '/api/alerts/' : `/api/alerts/?severity=${filter}`;
       const alertsRes = await fetch(`${API_URL}${url}`, { headers });
       if (alertsRes.status === 401) {
@@ -97,19 +96,19 @@ const Dashboard = ({
     }
   };
 
-  // ✅ Send report via email
+  // ✅ Send Report function
   const handleSendReport = async () => {
     const email = prompt('Enter your email address:');
     if (!email) return;
 
-    // If no scan data, show warning
     if (anomalies.length === 0 && totalEntries === 0) {
-      alert('⚠️ No scan data found. Please upload a log file first.');
+      alert('⚠️ No scan data found. Please upload and scan a log file first.');
       return;
     }
 
+    setSending(true);
     try {
-      const response = await fetch('https://log-analysis-dashboard-final.onrender.com/api/logs/send_report/', {
+      const response = await fetch(`${API_URL}/api/logs/send_report/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,6 +125,8 @@ const Dashboard = ({
       }
     } catch (error) {
       alert('Network error: ' + error.message);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -164,12 +165,17 @@ const Dashboard = ({
             >
               🚨 View Alerts
             </button>
-            {/* ✅ NEW: Send Report Button */}
+            {/* ✅ "Send Report" button */}
             <button
               onClick={handleSendReport}
-              className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition text-sm border border-blue-500/30"
+              disabled={sending}
+              className={`px-4 py-2 rounded-lg transition text-sm border ${
+                sending
+                  ? 'bg-gray-600 cursor-not-allowed text-gray-300 border-gray-600'
+                  : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30'
+              }`}
             >
-              📧 Send Report
+              {sending ? '⏳ Sending...' : '📧 Send Report'}
             </button>
             <button
               onClick={onLogout}
@@ -186,7 +192,7 @@ const Dashboard = ({
           </div>
         )}
 
-        {/* ✅ Show last scan summary if available */}
+        {/* ✅ Last scan summary (optional) */}
         {(anomalies.length > 0 || totalEntries > 0) && (
           <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#2a2a2a] mb-6 flex items-center justify-between">
             <div>
@@ -194,7 +200,7 @@ const Dashboard = ({
               <span className="ml-3 text-white font-medium">{totalEntries} entries</span>
               <span className="ml-3 text-yellow-400 font-medium">{anomalies.length} anomalies</span>
             </div>
-            <span className="text-xs text-gray-500">Click "Send Report" to email this summary</span>
+            <span className="text-xs text-gray-500">Click "Send Report" to email</span>
           </div>
         )}
 
