@@ -31,7 +31,9 @@ Please check the dashboard immediately.
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        # timeout=10 added — prevents this call from hanging forever and
+        # taking down the whole gunicorn worker (was causing WORKER TIMEOUT / SIGKILL)
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10)
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)

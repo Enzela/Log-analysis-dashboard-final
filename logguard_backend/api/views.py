@@ -1,4 +1,3 @@
-# FORCE REBUILD - 2026-07-21
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -168,17 +167,22 @@ class LogFileViewSet(viewsets.ModelViewSet):
                     message=f"Anomaly detected: {event[:100]} from {ip}"
                 )
                 if severity == Severity.CRITICAL:
-                    send_alert_email(
-                        severity=severity,
-                        message=f"Critical anomaly detected: {event} from {ip}",
-                        ip=ip,
-                        event=event
-                    )
+                    # Wrapped in try/except: an SMTP hang/failure must never
+                    # block or crash the upload response (this was the root
+                    # cause of the WORKER TIMEOUT / apparent "CORS" errors).
+                    try:
+                        send_alert_email(
+                            severity=severity,
+                            message=f"Critical anomaly detected: {event} from {ip}",
+                            ip=ip,
+                            event=event
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Email alert failed (non-blocking): {e}")
 
         log_file.status = 'processed'
         log_file.save()
 
-        # ✅ Manual CORS headers — यसले CORS error fix गर्छ
         response_data = {
             'success': True,
             'detected': len(entries),
@@ -186,11 +190,7 @@ class LogFileViewSet(viewsets.ModelViewSet):
             'entries': entries[:10],
             'anomaly_list': anomalies[:5]
         }
-        response = Response(response_data, status=200)
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Accept, Authorization, Content-Type, X-CSRFToken'
-        return response
+        return Response(response_data, status=200)
 
     def list(self, request):
         queryset = LogFile.objects.annotate(
