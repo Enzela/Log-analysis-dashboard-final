@@ -1,3 +1,10 @@
+# FORCE REBUILD - 2026-07-21
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.contrib.auth import get_user_model   # ✅ यो line थप
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import LogFile, LogEntry, Alert, Severity
@@ -8,7 +15,7 @@ import re
 import PyPDF2
 from io import BytesIO
 
-User = get_user_model()
+User = get_user_model()   # ✅ अब यो defined छ
 
 def parse_raw_line(line):
     if not line:
