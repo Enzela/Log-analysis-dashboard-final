@@ -168,6 +168,11 @@ const LandingPage = ({ onNavigateToDashboard }) => {
 
             {result && (
               <div className="mt-4 p-4 bg-black rounded-xl border border-[#f59e0b]/20">
+                {/* ✅ DEBUG LINE — यो red box देखियो भने result render भइरहेको छ */}
+                <div className="bg-red-500 text-white p-2 mb-4 rounded">
+                  DEBUG: Result is shown (यो box देखियो भने code ठिक छ)
+                </div>
+
                 <div className="flex gap-8 justify-center">
                   <div>
                     <p className="text-gray-500 text-sm">Total Entries</p>
