@@ -85,7 +85,7 @@ CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
 
 # 🔴 यदि अझै CORS error आयो भने — तलको line uncomment गर (debug को लागि)
-# CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
